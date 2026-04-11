@@ -6,6 +6,7 @@ import { getDailyPrompt } from '@/lib/daily-prompts';
 import { CONFRONTATION_LEVELS } from '@/lib/constants';
 import AuthModal from '@/components/AuthModal';
 import UpgradePage from '@/components/UpgradePage';
+import SidePanel from '@/components/SidePanel';
 
 type Message = { role: 'user' | 'assistant'; content: string; level?: string };
 type UserState = { id: string; email: string; tier: string } | null;
@@ -54,6 +55,7 @@ export default function Home() {
   const [freeRemaining, setFreeRemaining] = useState(FREE_WEEKLY_LIMIT);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [savedConvos, setSavedConvos] = useState<SavedConvo[]>([]);
+  const [showSidePanel, setShowSidePanel] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
@@ -81,11 +83,15 @@ export default function Home() {
 
   const checkLimits = useCallback(async () => {
     if (!user) return;
-    if (user.tier === 'paid') { setFreeRemaining(Infinity); return; }
     try {
       const res = await fetch('/api/check-limits', { headers: { 'x-user-id': user.id } });
       const data = await res.json();
-      setFreeRemaining(data.remaining ?? FREE_WEEKLY_LIMIT);
+      if (data.tier === 'paid') {
+        if (user.tier !== 'paid') setUser(prev => prev ? { ...prev, tier: 'paid' } : null);
+        setFreeRemaining(Infinity);
+      } else {
+        setFreeRemaining(data.remaining ?? FREE_WEEKLY_LIMIT);
+      }
     } catch {}
   }, [user]);
 
@@ -187,6 +193,16 @@ export default function Home() {
 
         {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} onSuccess={() => { setShowAuthModal(false); window.location.reload(); }} />}
 
+        <SidePanel
+          open={showSidePanel}
+          user={user}
+          savedConvos={savedConvos}
+          onClose={() => setShowSidePanel(false)}
+          onLoadConvo={loadConversation}
+          onShowSafety={() => setShowSafetyInfo(true)}
+          onLogout={handleLogout}
+        />
+
         {/* Safety Modal */}
         {showSafetyInfo && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 28 }}>
@@ -231,14 +247,11 @@ export default function Home() {
 
             {/* Auth bar */}
             <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 10, padding: '10px 28px', background: 'var(--bg)', borderBottom: '1px solid var(--border)', opacity: authLoading ? 0 : 1, transition: 'opacity 0.3s ease' }}>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 12 }}>
-                { authLoading ? null : user ? (
-                  <>
-                    <span style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: F, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>{user.email}</span>
-                    <button onClick={handleLogout} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F }}>Log Out</button>
-                  </>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+                {authLoading ? null : user ? (
+                  <button onClick={() => setShowSidePanel(true)} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 20, fontFamily: F, padding: '2px 13px', lineHeight: 1.2 }}>≡</button>
                 ) : (
-                  <button onClick={() => setShowAuthModal(true)} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, padding: '6px 14px' }}>Sign In/Up</button>
+                  <button onClick={() => setShowAuthModal(true)} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, padding: '6px 14px' }}>Sign In / Up</button>
                 )}
               </div>
             </div>
@@ -316,21 +329,6 @@ export default function Home() {
             </div>
 
             <button onClick={handleReflect} disabled={!journalText.trim() || isReflecting} style={{ width: '100%', padding: '18px 0', background: journalText.trim() ? 'var(--btn-bg)' : 'var(--surface)', color: journalText.trim() ? 'var(--btn-text)' : 'var(--text-muted)', border: `1px solid ${journalText.trim() ? 'var(--btn-bg)' : 'var(--border)'}`, fontSize: 14, letterSpacing: 3, textTransform: 'uppercase', cursor: journalText.trim() ? 'pointer' : 'default', fontFamily: F, fontWeight: 500, transition: 'all 0.3s ease' }}>{isReflecting ? 'Looking deeper...' : 'Reflect'}</button>
-
-            {/* Saved Reflections */}
-            {user && savedConvos.length > 0 && (
-              <div style={{ width: '100%', marginTop: 40, borderTop: '1px solid var(--border)', paddingTop: 28 }}>
-                <p style={{ fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 16px 0', fontFamily: F }}>Past Reflections</p>
-                {savedConvos.slice(0, 10).map((c) => (
-                  <button key={c.id} onClick={() => loadConversation(c.id)} style={{ width: '100%', textAlign: 'left', padding: '14px 16px', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'pointer', fontFamily: F, marginBottom: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'border-color 0.3s' }}
-                    onMouseEnter={(e) => { (e.target as HTMLElement).style.borderColor = 'var(--border-hover)'; }}
-                    onMouseLeave={(e) => { (e.target as HTMLElement).style.borderColor = 'var(--border)'; }}>
-                    <span style={{ fontSize: 14, fontWeight: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{c.title || 'Untitled reflection'}</span>
-                    <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 12, whiteSpace: 'nowrap' }}>{new Date(c.updated_at).toLocaleDateString()}</span>
-                  </button>
-                ))}
-              </div>
-            )}
 
             <button onClick={() => setShowSafetyInfo(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', padding: '32px 0 20px 0', fontFamily: F }}>Safety & Disclaimer</button>
           </div>
