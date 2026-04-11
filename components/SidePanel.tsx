@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 const F = "'Cormorant Garamond', Georgia, serif";
 
@@ -31,6 +31,9 @@ export default function SidePanel({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [isMobile, setIsMobile] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 520);
@@ -46,6 +49,19 @@ export default function SidePanel({
     } catch {}
   }, []);
 
+  // Close menu on outside click
+  useEffect(() => {
+    if (!openMenuId) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenuId(null);
+        setConfirmDeleteId(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [openMenuId]);
+
   const togglePin = (id: string) => {
     setPinnedIds(prev => {
       const next = new Set(prev);
@@ -54,10 +70,10 @@ export default function SidePanel({
       try { localStorage.setItem('blunnit_pinned_convos', JSON.stringify([...next])); } catch {}
       return next;
     });
+    setOpenMenuId(null);
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete this reflection? This cannot be undone.')) return;
     await fetch(`/api/conversations?id=${id}`, { method: 'DELETE', headers: { 'x-user-id': user?.id || '' } });
     onDeleteConvo(id);
     setPinnedIds(prev => {
@@ -66,11 +82,14 @@ export default function SidePanel({
       try { localStorage.setItem('blunnit_pinned_convos', JSON.stringify([...next])); } catch {}
       return next;
     });
+    setOpenMenuId(null);
+    setConfirmDeleteId(null);
   };
 
   const startEdit = (id: string, currentTitle: string) => {
     setEditingId(id);
     setEditTitle(currentTitle || '');
+    setOpenMenuId(null);
   };
 
   const commitEdit = async (id: string) => {
@@ -122,7 +141,7 @@ export default function SidePanel({
         }}
       />
 
-      {/* Panel - slides from LEFT */}
+      {/* Panel */}
       <div style={{
         position: 'fixed', top: 0, left: 0, bottom: 0,
         width: panelWidth, zIndex: 201,
@@ -175,6 +194,8 @@ export default function SidePanel({
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                       {sortedConvos.slice(0, 30).map((c) => {
                         const pinned = pinnedIds.has(c.id);
+                        const menuOpen = openMenuId === c.id;
+                        const confirmingDelete = confirmDeleteId === c.id;
 
                         if (editingId === c.id) {
                           return (
@@ -201,52 +222,133 @@ export default function SidePanel({
                         return (
                           <div
                             key={c.id}
-                            style={{
-                              display: 'flex', alignItems: 'stretch',
-                              border: `1px solid ${pinned ? 'var(--border-hover)' : 'var(--border)'}`,
-                            }}
+                            style={{ position: 'relative', border: `1px solid ${pinned ? 'var(--border-hover)' : 'var(--border)'}` }}
+                            ref={menuOpen ? menuRef : undefined}
                           >
-                            <button
-                              onClick={() => { onLoadConvo(c.id); onClose(); }}
-                              style={{
-                                flex: 1, textAlign: 'left', padding: '9px 10px',
-                                background: 'transparent', border: 'none',
-                                color: 'var(--text)', cursor: 'pointer', fontFamily: F,
-                                minWidth: 0,
-                              }}
-                            >
-                              <div style={{ fontSize: 12, fontWeight: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {pinned && <span style={{ marginRight: 4, fontSize: 8, color: 'var(--text-dim)' }}>+</span>}
-                                {c.title || 'Untitled reflection'}
-                              </div>
-                              <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>
-                                {new Date(c.updated_at).toLocaleDateString()}
-                              </div>
-                            </button>
+                            <div style={{ display: 'flex', alignItems: 'stretch' }}>
+                              {/* Main button */}
+                              <button
+                                onClick={() => { onLoadConvo(c.id); onClose(); }}
+                                style={{
+                                  flex: 1, textAlign: 'left', padding: '9px 10px',
+                                  background: 'transparent', border: 'none',
+                                  color: 'var(--text)', cursor: 'pointer', fontFamily: F,
+                                  minWidth: 0,
+                                }}
+                              >
+                                <div style={{ fontSize: 12, fontWeight: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {pinned && <span style={{ marginRight: 5, fontSize: 9, color: 'var(--text-dim)', verticalAlign: 'middle' }}>◆</span>}
+                                  {c.title || 'Untitled reflection'}
+                                </div>
+                                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>
+                                  {new Date(c.updated_at).toLocaleDateString()}
+                                </div>
+                              </button>
 
-                            <div style={{ display: 'flex', flexDirection: 'column', borderLeft: '1px solid var(--border)', flexShrink: 0 }}>
+                              {/* Three-dot menu trigger */}
                               <button
-                                onClick={() => startEdit(c.id, c.title)}
-                                title="Rename"
-                                style={{ flex: 1, background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0 7px', fontSize: 11, fontFamily: F }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenMenuId(menuOpen ? null : c.id);
+                                  setConfirmDeleteId(null);
+                                }}
+                                style={{
+                                  background: 'none', border: 'none', borderLeft: '1px solid var(--border)',
+                                  color: menuOpen ? 'var(--text)' : 'var(--text-muted)',
+                                  cursor: 'pointer', padding: '0 10px', fontSize: 16,
+                                  fontFamily: F, flexShrink: 0, lineHeight: 1,
+                                  transition: 'color 0.15s ease',
+                                }}
                               >
-                                e
-                              </button>
-                              <button
-                                onClick={() => togglePin(c.id)}
-                                title={pinned ? 'Unpin' : 'Pin'}
-                                style={{ flex: 1, background: 'none', border: 'none', color: pinned ? 'var(--text)' : 'var(--text-muted)', cursor: 'pointer', padding: '0 7px', fontSize: 9, fontFamily: F }}
-                              >
-                                p
-                              </button>
-                              <button
-                                onClick={() => handleDelete(c.id)}
-                                title="Delete"
-                                style={{ flex: 1, background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0 7px', fontSize: 13, fontFamily: F }}
-                              >
-                                x
+                                ⋮
                               </button>
                             </div>
+
+                            {/* Dropdown menu */}
+                            {menuOpen && (
+                              <div style={{
+                                position: 'absolute', right: 0, top: '100%',
+                                zIndex: 10, minWidth: 150,
+                                background: '#000', border: '1px solid var(--border)',
+                                boxShadow: '0 4px 20px rgba(0,0,0,0.8)',
+                              }}>
+                                {!confirmingDelete ? (
+                                  <>
+                                    <button
+                                      onClick={() => startEdit(c.id, c.title)}
+                                      style={{
+                                        display: 'block', width: '100%', textAlign: 'left',
+                                        padding: '10px 14px', background: 'none', border: 'none',
+                                        borderBottom: '1px solid var(--border)',
+                                        color: 'var(--text-dim)', fontSize: 12, fontFamily: F,
+                                        fontWeight: 300, cursor: 'pointer', letterSpacing: 0.5,
+                                      }}
+                                      onMouseEnter={e => (e.currentTarget.style.color = 'var(--text)')}
+                                      onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-dim)')}
+                                    >
+                                      Rename
+                                    </button>
+                                    <button
+                                      onClick={() => togglePin(c.id)}
+                                      style={{
+                                        display: 'block', width: '100%', textAlign: 'left',
+                                        padding: '10px 14px', background: 'none', border: 'none',
+                                        borderBottom: '1px solid var(--border)',
+                                        color: 'var(--text-dim)', fontSize: 12, fontFamily: F,
+                                        fontWeight: 300, cursor: 'pointer', letterSpacing: 0.5,
+                                      }}
+                                      onMouseEnter={e => (e.currentTarget.style.color = 'var(--text)')}
+                                      onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-dim)')}
+                                    >
+                                      {pinned ? 'Unpin' : 'Pin'}
+                                    </button>
+                                    <button
+                                      onClick={() => setConfirmDeleteId(c.id)}
+                                      style={{
+                                        display: 'block', width: '100%', textAlign: 'left',
+                                        padding: '10px 14px', background: 'none', border: 'none',
+                                        color: '#ff6b6b', fontSize: 12, fontFamily: F,
+                                        fontWeight: 300, cursor: 'pointer', letterSpacing: 0.5,
+                                      }}
+                                      onMouseEnter={e => (e.currentTarget.style.opacity = '0.7')}
+                                      onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+                                    >
+                                      Delete
+                                    </button>
+                                  </>
+                                ) : (
+                                  <div style={{ padding: '12px 14px' }}>
+                                    <p style={{ fontSize: 11, color: 'var(--text-dim)', margin: '0 0 10px 0', fontFamily: F, fontWeight: 300, lineHeight: 1.5 }}>
+                                      Delete this reflection?
+                                    </p>
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                      <button
+                                        onClick={() => handleDelete(c.id)}
+                                        style={{
+                                          flex: 1, padding: '7px 0', background: 'none',
+                                          border: '1px solid rgba(255,107,107,0.4)',
+                                          color: '#ff6b6b', fontSize: 10, fontFamily: F,
+                                          letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer',
+                                        }}
+                                      >
+                                        Yes
+                                      </button>
+                                      <button
+                                        onClick={() => setConfirmDeleteId(null)}
+                                        style={{
+                                          flex: 1, padding: '7px 0', background: 'none',
+                                          border: '1px solid var(--border)',
+                                          color: 'var(--text-muted)', fontSize: 10, fontFamily: F,
+                                          letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer',
+                                        }}
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -308,7 +410,6 @@ export default function SidePanel({
         {/* Fixed bottom section */}
         <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 7, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
 
-          {/* New Reflection */}
           <button
             onClick={() => { onClose(); onNewReflection(); }}
             style={{
@@ -321,7 +422,6 @@ export default function SidePanel({
             New Reflection
           </button>
 
-          {/* Pattern Report (paid only) */}
           {isPaid && (
             <div style={{ padding: '12px 14px', border: '1px solid var(--border)' }}>
               <p style={{ fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 4px 0', fontFamily: F }}>
@@ -333,7 +433,6 @@ export default function SidePanel({
             </div>
           )}
 
-          {/* 7-Day Protocol */}
           <a
             href="https://blunnit.gumroad.com/l/protocol"
             target="_blank"
@@ -349,7 +448,6 @@ export default function SidePanel({
             7-Day Protocol
           </a>
 
-          {/* Safety */}
           <button
             onClick={() => { onClose(); onShowSafety(); }}
             style={{
@@ -362,7 +460,6 @@ export default function SidePanel({
             Safety & Disclaimer
           </button>
 
-          {/* Cancel Subscription (paid only) */}
           {isPaid && !cancelDone && (
             <button
               onClick={handleCancelSubscription}
@@ -385,7 +482,6 @@ export default function SidePanel({
             </p>
           )}
 
-          {/* Log Out */}
           <button
             onClick={onLogout}
             style={{
