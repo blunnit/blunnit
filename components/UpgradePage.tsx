@@ -29,10 +29,11 @@ const res = await fetch('/api/checkout', { method: 'POST', headers: { 'Content-T
       animation: 'fadeIn 0.8s ease',
     }}>
       <button onClick={onBack} style={{
-        position: 'absolute', top: 32, left: 28,
+        position: 'fixed', top: 20, left: 28,
         background: 'none', border: 'none', color: 'var(--text-muted)',
         cursor: 'pointer', fontSize: 10, letterSpacing: 2,
         textTransform: 'uppercase', fontFamily: 'var(--font-ui)',
+        zIndex: 10,
       }}>
         Back
       </button>

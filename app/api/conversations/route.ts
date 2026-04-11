@@ -103,6 +103,30 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
 }
 
+// PATCH: Rename a conversation
+export async function PATCH(req: NextRequest) {
+  const supabase = await createServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  }
+
+  const { conversationId, title } = await req.json();
+
+  if (!conversationId || !title) {
+    return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
+  }
+
+  await supabase
+    .from('conversations')
+    .update({ title: title.slice(0, 100) })
+    .eq('id', conversationId)
+    .eq('user_id', user.id);
+
+  return NextResponse.json({ ok: true });
+}
+
 // DELETE: Remove a conversation
 export async function DELETE(req: NextRequest) {
   const supabase = await createServerSupabase();

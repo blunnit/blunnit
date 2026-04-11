@@ -16,6 +16,29 @@ const ANON_LIMIT = 3;
 const FREE_WEEKLY_LIMIT = 10;
 const F = "'Cormorant Garamond', Georgia, serif";
 
+function trackReflectDay(userId: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const key = `blunnit_reflect_days_${userId}`;
+    const stored = localStorage.getItem(key);
+    const days: string[] = stored ? JSON.parse(stored) : [];
+    const today = new Date().toISOString().split('T')[0];
+    if (!days.includes(today)) {
+      days.push(today);
+      localStorage.setItem(key, JSON.stringify(days));
+    }
+  } catch {}
+}
+
+function getReflectDays(userId: string): number {
+  if (typeof window === 'undefined') return 0;
+  try {
+    const key = `blunnit_reflect_days_${userId}`;
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored).length : 0;
+  } catch { return 0; }
+}
+
 function getAnonCount(): number {
   if (typeof window === 'undefined') return 0;
   try {
@@ -56,11 +79,17 @@ export default function Home() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [savedConvos, setSavedConvos] = useState<SavedConvo[]>([]);
   const [showSidePanel, setShowSidePanel] = useState(false);
+  const [reflectDays, setReflectDays] = useState(0);
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
 
   useEffect(() => { setAnonUsed(getAnonCount()); }, []);
+
+  useEffect(() => {
+    if (user?.tier === 'paid') setReflectDays(getReflectDays(user.id));
+  }, [user]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -96,7 +125,7 @@ export default function Home() {
   }, [user]);
 
   const loadConversations = useCallback(async () => {
-    if (!user) return;
+    if (!user || user.tier !== 'paid') return;
     try {
       const res = await fetch('/api/conversations');
       const data = await res.json();
@@ -126,9 +155,9 @@ export default function Home() {
   };
 
   const getOrCreateConversation = async (): Promise<string | null> => {
-    if (!user) return null;
+    if (!user || user.tier !== 'paid') return null;
     if (conversationId) return conversationId;
-    const res = await fetch('/api/conversations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'create', confrontation, title: journalText.slice(0, 60) }) });
+    const res = await fetch('/api/conversations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'create', confrontation, title: journalText.slice(0, 40) }) });
     const data = await res.json();
     if (data.conversation?.id) { setConversationId(data.conversation.id); return data.conversation.id; }
     return null;
@@ -151,6 +180,7 @@ export default function Home() {
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
     const reflectionLevel = confrontation;
+    const wasNewConvo = !conversationId && user?.tier === 'paid';
     setJournalText(''); setScreen('mirror');
     const convId = await getOrCreateConversation();
     if (convId) await saveMessage(convId, 'user', userMessage.content);
@@ -167,7 +197,22 @@ export default function Home() {
           setStreamedText(''); setIsReflecting(false);
           if (convId) saveMessage(convId, 'assistant', assistantText, reflectionLevel);
           if (!user) { incrementAnonCount(); setAnonUsed(prev => prev + 1); }
-          else { fetch('/api/check-limits', { method: 'POST', headers: { 'x-user-id': user.id } }).then(() => checkLimits()); }
+          else {
+            fetch('/api/check-limits', { method: 'POST', headers: { 'x-user-id': user.id } }).then(() => checkLimits());
+            if (user.tier === 'paid') {
+              trackReflectDay(user.id);
+              setReflectDays(getReflectDays(user.id));
+              if (wasNewConvo && convId) {
+                fetch('/api/generate-title', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ conversationId: convId, firstMessage: userMessage.content }),
+                }).then(() => fetch('/api/conversations').then(r => r.json()).then(d => setSavedConvos(d.conversations || [])));
+              } else {
+                fetch('/api/conversations').then(r => r.json()).then(d => setSavedConvos(d.conversations || []));
+              }
+            }
+          }
         }
       };
       typeWriter();
@@ -177,6 +222,13 @@ export default function Home() {
   const handleKeyDown = (e: React.KeyboardEvent) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleReflect(); } };
   const goHome = () => { setMessages([]); setJournalText(''); setStreamedText(''); setError(null); setConversationId(null); setScreen('home'); };
   const handleLogout = async () => { await supabase.auth.signOut(); setUser(null); goHome(); };
+  const handleDeleteConvo = (id: string) => {
+    setSavedConvos(prev => prev.filter(c => c.id !== id));
+    if (conversationId === id) { setConversationId(null); goHome(); }
+  };
+  const handleRenameConvo = (id: string, title: string) => {
+    setSavedConvos(prev => prev.map(c => c.id === id ? { ...c, title } : c));
+  };
   const getLevelInfo = (key: string) => CONFRONTATION_LEVELS.find((l) => l.key === key);
 
   const remaining = getRemaining();
@@ -189,6 +241,21 @@ export default function Home() {
       {/* Grain */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 1, opacity: 0.03, background: `url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")` }} />
 
+      {/* Fixed auth bar - always rendered, no layout shift */}
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 10, padding: '10px 28px', background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ display: 'flex', justifyContent: user ? 'flex-start' : 'flex-end', alignItems: 'center' }}>
+          {!authLoading && (user ? (
+            <button onClick={() => setShowSidePanel(true)} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 18, fontFamily: F, padding: '3px 13px', lineHeight: 1.3 }}>
+              =
+            </button>
+          ) : (
+            <button onClick={() => setShowAuthModal(true)} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, padding: '6px 14px' }}>
+              Sign In / Up
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div style={{ position: 'relative', zIndex: 2, maxWidth: 520, margin: '0 auto', padding: '0 28px' }}>
 
         {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} onSuccess={() => { setShowAuthModal(false); window.location.reload(); }} />}
@@ -199,8 +266,11 @@ export default function Home() {
           savedConvos={savedConvos}
           onClose={() => setShowSidePanel(false)}
           onLoadConvo={loadConversation}
+          onDeleteConvo={handleDeleteConvo}
+          onRenameConvo={handleRenameConvo}
           onShowSafety={() => setShowSafetyInfo(true)}
           onLogout={handleLogout}
+          onUpgrade={() => setScreen('upgrade')}
         />
 
         {/* Safety Modal */}
@@ -245,17 +315,6 @@ export default function Home() {
         {screen === 'home' && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100vh', textAlign: 'center', animation: 'fadeIn 0.8s ease', paddingTop: 60, paddingBottom: 40 }}>
 
-            {/* Auth bar */}
-            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 10, padding: '10px 28px', background: 'var(--bg)', borderBottom: '1px solid var(--border)', opacity: authLoading ? 0 : 1, transition: 'opacity 0.3s ease' }}>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
-                {authLoading ? null : user ? (
-                  <button onClick={() => setShowSidePanel(true)} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 20, fontFamily: F, padding: '2px 13px', lineHeight: 1.2 }}>≡</button>
-                ) : (
-                  <button onClick={() => setShowAuthModal(true)} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, padding: '6px 14px' }}>Sign In / Up</button>
-                )}
-              </div>
-            </div>
-
             <img src="/logo.png" alt="" style={{ width: 36, height: 'auto', marginTop: 20, marginBottom: 16 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
             <h1 style={{ fontSize: 36, fontWeight: 400, letterSpacing: 8, margin: '0 0 4px 0', fontFamily: F, textTransform: 'uppercase' }}>The Blunnit Mirror</h1>
             <p style={{ fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--text-muted)', margin: '0 0 40px 0', fontFamily: F }}>Pierce The Illusion</p>
@@ -289,6 +348,13 @@ export default function Home() {
             {/* Full Access */}
             {!authLoading && user && user.tier !== 'paid' && (
               <button onClick={() => setScreen('upgrade')} style={{ width: '100%', padding: '14px 0', background: 'none', border: '1px solid var(--border)', color: 'var(--text-dim)', fontSize: 12, letterSpacing: 3, textTransform: 'uppercase', cursor: 'pointer', fontFamily: F, marginBottom: 24 }}>Unlock Full Access</button>
+            )}
+
+            {/* Reflect days for paid users */}
+            {!authLoading && user?.tier === 'paid' && reflectDays > 0 && (
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', fontFamily: F, fontWeight: 300, marginBottom: 20, margin: '0 0 20px 0' }}>
+                {reflectDays === 1 ? 'You have reflected for 1 day.' : `You have reflected for ${reflectDays} days.`}
+              </p>
             )}
 
             {/* Daily Prompt */}
@@ -367,6 +433,24 @@ export default function Home() {
                   {msg.role === 'user' ? 'You' : (<>The Mirror {msg.level && <span style={{ marginLeft: 6 }}>{getLevelInfo(msg.level)?.icon} <span style={{ fontSize: 10, letterSpacing: 2 }}>{getLevelInfo(msg.level)?.label}</span></span>}</>)}
                 </p>
                 <p style={{ fontSize: msg.role === 'assistant' ? 18 : 15, lineHeight: 1.7, color: msg.role === 'assistant' ? 'var(--text)' : 'var(--text-dim)', fontStyle: msg.role === 'assistant' ? 'italic' : 'normal', fontWeight: 300, margin: 0, borderLeft: msg.role === 'assistant' ? '2px solid var(--border)' : 'none', paddingLeft: msg.role === 'assistant' ? 20 : 0, fontFamily: F }}>{msg.content}</p>
+                {msg.role === 'assistant' && user?.tier === 'paid' && (
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(msg.content + '\n\nReflected in the BLUNNIT Mirror');
+                      setCopiedIdx(i);
+                      setTimeout(() => setCopiedIdx(prev => prev === i ? null : prev), 2000);
+                    }}
+                    style={{
+                      marginTop: 10, background: 'none', border: 'none',
+                      color: copiedIdx === i ? 'var(--text-dim)' : 'var(--text-muted)',
+                      fontSize: 10, letterSpacing: 2, textTransform: 'uppercase',
+                      cursor: 'pointer', fontFamily: F, padding: '4px 0',
+                      transition: 'color 0.3s',
+                    }}
+                  >
+                    {copiedIdx === i ? 'Copied' : 'Share'}
+                  </button>
+                )}
               </div>
             ))}
 
