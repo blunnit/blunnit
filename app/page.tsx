@@ -77,7 +77,8 @@ export default function Home() {
 
   const handleReflect = useCallback(async () => {
     if (!journalText.trim() || isReflecting) return;
-    if (!limits.allowed) { if (limits.tier === 'anonymous') { setShowAuthModal(true); } else { setScreen('upgrade'); } return; }
+if (limits.tier === 'anonymous' && sessionCount >= 3) { setShowAuthModal(true); return; }
+if (!limits.allowed && limits.tier !== 'anonymous') { setScreen('upgrade'); return; }
     setError(null); setIsReflecting(true); setStreamedText('');
     const userMessage: Message = { role: 'user', content: journalText };
     const updatedMessages = [...messages, userMessage];
