@@ -179,15 +179,6 @@ export default function Home() {
 
   const handleKeyDown = (e: React.KeyboardEvent) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleReflect(); } };
   const goHome = () => { setMessages([]); setJournalText(''); setStreamedText(''); setError(null); setConversationId(null); setScreen('home'); };
-  const handleLogout = async () => { await s
-        }
-      };
-      typeWriter();
-    } catch (err: any) { setError(err.message); setIsReflecting(false); }
-  }, [journalText, messages, confrontation, isReflecting, user, anonUsed, freeRemaining, conversationId]);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleReflect(); } };
-  const goHome = () => { setMessages([]); setJournalText(''); setStreamedText(''); setError(null); setConversationId(null); setScreen('home'); };
   const handleLogout = async () => { await supabase.auth.signOut(); setUser(null); goHome(); };
   const getLevelInfo = (key: string) => CONFRONTATION_LEVELS.find((l) => l.key === key);
 
