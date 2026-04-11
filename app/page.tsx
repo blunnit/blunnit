@@ -231,7 +231,7 @@ export default function Home() {
 
             {/* Auth bar */}
             <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 10, padding: '10px 28px', background: 'var(--bg)', borderBottom: '1px solid var(--border)', opacity: authLoading ? 0 : 1, transition: 'opacity 0.3s ease' }}>
-              <div style={{ maxWidth: 520, margin: '0 auto', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 12 }}>
                 { authLoading ? null : user ? (
                   <>
                     <span style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: F, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>{user.email}</span>
