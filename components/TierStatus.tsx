@@ -22,7 +22,7 @@ export default function TierStatus({ remaining, limit, tier, onUpgrade, onSignUp
           fontSize: 10, color: 'var(--text-dim)', margin: 0,
           fontFamily: 'var(--font-ui)', letterSpacing: 1, lineHeight: 1.5,
         }}>
-          {remaining} reflection{remaining !== 1 ? 's' : ''} remaining as guest.
+          Create a free account to save your reflections and unlock more.
           <br />
           <span style={{ color: 'var(--text-muted)' }}>Create a free account to save your reflections and get more.</span>
         </p>
