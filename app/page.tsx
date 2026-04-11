@@ -226,7 +226,7 @@ export default function Home() {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100vh', textAlign: 'center', animation: 'fadeIn 0.8s ease', paddingTop: 60, paddingBottom: 40 }}>
 
             {/* Auth bar */}
-            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 10, padding: '10px 28px', background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 10, padding: '10px 28px', background: 'var(--bg)', borderBottom: '1px solid var(--border)', opacity: authLoading ? 0 : 1, transition: 'opacity 0.3s ease' }}>
               <div style={{ maxWidth: 520, margin: '0 auto', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 12 }}>
                 { authLoading ? null : user ? (
                   <>
