@@ -329,7 +329,7 @@ export default function Home() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               {!authLoading && user && (
-                <button onClick={() => setShowSidePanel(true)} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 18, fontFamily: F, padding: '3px 13px', lineHeight: 1.3 }}>
+                <button onClick={() => setShowSidePanel(v => !v)} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 18, fontFamily: F, padding: '6px 22px', lineHeight: 1.3 }}>
                   =
                 </button>
               )}
