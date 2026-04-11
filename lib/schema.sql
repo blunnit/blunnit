@@ -131,3 +131,9 @@ create policy "Users can manage their own themes"
   using (auth.uid() = user_id);
 
 create index idx_user_themes_user_count on public.user_themes(user_id, count desc);
+
+-- Daily presence counter (public aggregate, no RLS)
+create table public.daily_presence (
+  date date primary key,
+  count integer default 0 not null
+);

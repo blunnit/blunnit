@@ -8,12 +8,14 @@ import AuthModal from '@/components/AuthModal';
 import UpgradePage from '@/components/UpgradePage';
 import SidePanel from '@/components/SidePanel';
 
-type Message = { role: 'user' | 'assistant'; content: string; level?: string };
+type Signal = { type: 'sit' | 'choice' | 'mirror'; data?: string | string[] };
+type Message = { role: 'user' | 'assistant'; content: string; level?: string; signal?: Signal };
 type UserState = { id: string; email: string; tier: string } | null;
 type SavedConvo = { id: string; title: string; updated_at: string; confrontation_level: string };
 
 const ANON_LIMIT = 3;
 const FREE_WEEKLY_LIMIT = 10;
+const DAILY_SOFT_CAP = 15;
 const F = "'Cormorant Garamond', Georgia, serif";
 
 function trackReflectDay(userId: string): void {
@@ -58,6 +60,43 @@ function incrementAnonCount(): void {
   localStorage.setItem('blunnit_anon', JSON.stringify({ date: today, count: current + 1 }));
 }
 
+function getDailyReflectCount(): number {
+  if (typeof window === 'undefined') return 0;
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const val = localStorage.getItem(`blunnit_daily_count_${today}`);
+    return val ? parseInt(val, 10) : 0;
+  } catch { return 0; }
+}
+
+function incrementDailyReflectCount(): number {
+  if (typeof window === 'undefined') return 0;
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const key = `blunnit_daily_count_${today}`;
+    const next = getDailyReflectCount() + 1;
+    localStorage.setItem(key, String(next));
+    return next;
+  } catch { return 0; }
+}
+
+function parseSignal(text: string): { cleanText: string; signal: Signal | null } {
+  const sitMatch = text.match(/\[SIT\]/);
+  if (sitMatch) {
+    return { cleanText: text.replace(/\[SIT\]/, '').trim(), signal: { type: 'sit' } };
+  }
+  const choiceMatch = text.match(/\[CHOICE\]([^\n]+)/);
+  if (choiceMatch) {
+    const opts = choiceMatch[1].split('|').map((s: string) => s.trim()).filter(Boolean);
+    return { cleanText: text.replace(/\[CHOICE\][^\n]+\n?/, '').trim(), signal: { type: 'choice', data: opts } };
+  }
+  const mirrorMatch = text.match(/\[MIRROR\]([^\n]+)/);
+  if (mirrorMatch) {
+    return { cleanText: text.replace(/\[MIRROR\][^\n]+\n?/, '').trim(), signal: { type: 'mirror', data: mirrorMatch[1].trim() } };
+  }
+  return { cleanText: text, signal: null };
+}
+
 export default function Home() {
   const [screen, setScreen] = useState<'disclaimer' | 'home' | 'mirror' | 'upgrade'>(() => {
     if (typeof window !== 'undefined' && localStorage.getItem('blunnit_accepted')) return 'home';
@@ -84,10 +123,17 @@ export default function Home() {
   const [welcomeToast, setWelcomeToast] = useState(false);
   const [keyboardOffset, setKeyboardOffset] = useState(0);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
-  const [savingTitle, setSavingTitle] = useState(false);
-  const [saveTitleText, setSaveTitleText] = useState('');
+  const [sitPref, setSitPref] = useState<'hold' | 'offer' | 'none' | null>(null);
+  const [activeSitMsgIdx, setActiveSitMsgIdx] = useState<number | null>(null);
+  const [sitCountdown, setSitCountdown] = useState(0);
+  const [presenceCount, setPresenceCount] = useState(0);
+  const [softCapShown, setSoftCapShown] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const pendingChoiceRef = useRef<string | null>(null);
+  const sitPrefRef = useRef(sitPref);
+  const userMsgCountRef = useRef(0);
+  const titleRegenFiredRef = useRef(false);
   const supabase = createClient();
 
   useEffect(() => { setAnonUsed(getAnonCount()); }, []);
@@ -95,6 +141,36 @@ export default function Home() {
   useEffect(() => {
     if (user?.tier === 'paid') setReflectDays(getReflectDays(user.id));
   }, [user]);
+
+  // Keep sitPrefRef in sync
+  useEffect(() => { sitPrefRef.current = sitPref; }, [sitPref]);
+
+  // Load sit pref from localStorage when user is available
+  useEffect(() => {
+    if (!user) return;
+    try {
+      const stored = localStorage.getItem(`blunnit_sit_pref_${user.id}`);
+      if (stored === 'hold' || stored === 'offer' || stored === 'none') {
+        setSitPref(stored as 'hold' | 'offer' | 'none');
+        sitPrefRef.current = stored as 'hold' | 'offer' | 'none';
+      }
+    } catch {}
+  }, [user]);
+
+  // Load presence count on home screen
+  useEffect(() => {
+    if (screen !== 'home') return;
+    fetch('/api/presence').then(r => r.json()).then(d => {
+      if (d.count > 0) setPresenceCount(d.count);
+    }).catch(() => {});
+  }, [screen]);
+
+  // Sit countdown timer
+  useEffect(() => {
+    if (activeSitMsgIdx === null || sitCountdown <= 0) return;
+    const t = setTimeout(() => setSitCountdown(s => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [activeSitMsgIdx, sitCountdown]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -154,6 +230,8 @@ export default function Home() {
       if (data.messages) {
         setMessages(data.messages.map((m: any) => ({ role: m.role, content: m.content, level: m.confrontation_level })));
         setConversationId(convoId);
+        userMsgCountRef.current = data.messages.filter((m: any) => m.role === 'user').length;
+        titleRegenFiredRef.current = true;
         setConfrontation(data.conversation?.confrontation_level || 'clear');
         setScreen('mirror');
       }
@@ -188,12 +266,10 @@ export default function Home() {
   useEffect(() => { if (!authLoading && user) { checkLimits(); loadConversations(); loadThemes(); } }, [authLoading, user, checkLimits, loadConversations, loadThemes]);
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, streamedText]);
 
-  // Update browser tab title
   useEffect(() => {
     document.title = screen === 'mirror' ? 'BLUNNIT Mirror' : 'BLUNNIT — Pierce The Illusion';
   }, [screen]);
 
-  // Push history state when entering mirror so back button returns to home
   useEffect(() => {
     if (screen === 'mirror') {
       window.history.pushState({ blunnit: 'mirror' }, '');
@@ -209,7 +285,11 @@ export default function Home() {
           setStreamedText('');
           setError(null);
           setConversationId(null);
-          setSavingTitle(false);
+          setActiveSitMsgIdx(null);
+          setSitCountdown(0);
+          setSoftCapShown(false);
+          userMsgCountRef.current = 0;
+          titleRegenFiredRef.current = false;
           return 'home';
         }
         return prev;
@@ -224,13 +304,18 @@ export default function Home() {
     await fetch('/api/conversations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'message', conversationId: convId, role, content, confrontationLevel: level }) });
   };
 
-  const getOrCreateConversation = async (): Promise<string | null> => {
+  const getOrCreateConversation = async (firstMsgText?: string): Promise<string | null> => {
     if (!user) return null;
     if (conversationId) return conversationId;
-    const title = journalText.slice(0, 40).trim() || 'Untitled reflection';
+    const title = (firstMsgText || journalText).slice(0, 40).trim() || 'Untitled reflection';
     const res = await fetch('/api/conversations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'create', confrontation, title }) });
     const data = await res.json();
-    if (data.conversation?.id) { setConversationId(data.conversation.id); return data.conversation.id; }
+    if (data.conversation?.id) {
+      setConversationId(data.conversation.id);
+      userMsgCountRef.current = 0;
+      titleRegenFiredRef.current = false;
+      return data.conversation.id;
+    }
     return null;
   };
 
@@ -242,32 +327,56 @@ export default function Home() {
 
   const getTier = (): string => !user ? 'anonymous' : user.tier;
 
+  const setSitPreference = (pref: 'hold' | 'offer' | 'none', msgIdx: number) => {
+    setSitPref(pref);
+    sitPrefRef.current = pref;
+    if (user) { try { localStorage.setItem(`blunnit_sit_pref_${user.id}`, pref); } catch {} }
+    if (pref === 'hold') { setActiveSitMsgIdx(msgIdx); setSitCountdown(60); }
+  };
+
   const handleReflect = useCallback(async () => {
-    if (!journalText.trim() || isReflecting) return;
+    const choiceText = pendingChoiceRef.current;
+    pendingChoiceRef.current = null;
+    const textToUse = choiceText ?? journalText;
+    if (!textToUse.trim() || isReflecting) return;
     if (!user && anonUsed >= ANON_LIMIT) { setShowAuthModal(true); return; }
     if (user && user.tier === 'free' && freeRemaining <= 0) { setScreen('upgrade'); return; }
     setError(null); setIsReflecting(true); setStreamedText('');
-    const userMessage: Message = { role: 'user', content: journalText };
+    const userMessage: Message = { role: 'user', content: textToUse };
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
     const reflectionLevel = confrontation;
     setJournalText(''); setScreen('mirror');
-    const convId = await getOrCreateConversation();
+    const convId = await getOrCreateConversation(textToUse);
     if (convId) await saveMessage(convId, 'user', userMessage.content);
+    userMsgCountRef.current += 1;
+    const currentMsgCount = userMsgCountRef.current;
     try {
       const response = await fetch('/api/reflect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: updatedMessages.map((m) => ({ role: m.role, content: m.content })), confrontation: reflectionLevel, userThemes }) });
       if (!response.ok) { const errData = await response.json().catch(() => ({})); throw new Error(errData?.error || `Error: ${response.status}`); }
       const data = await response.json();
-      const assistantText = data.reflection || 'The mirror is silent. Try again.';
+      const rawAssistantText = data.reflection || 'The mirror is silent. Try again.';
+      const { cleanText: assistantText, signal } = parseSignal(rawAssistantText);
       let i = 0;
       const typeWriter = () => {
         if (i < assistantText.length) { setStreamedText(assistantText.slice(0, i + 1)); i++; setTimeout(typeWriter, 18 + Math.random() * 12); }
         else {
-          setMessages((prev) => [...prev, { role: 'assistant', content: assistantText, level: reflectionLevel }]);
+          const newMsg: Message = { role: 'assistant', content: assistantText, level: reflectionLevel, signal: signal || undefined };
+          setMessages((prev) => {
+            const next = [...prev, newMsg];
+            if (signal?.type === 'sit' && sitPrefRef.current === 'hold') {
+              const idx = next.length - 1;
+              setTimeout(() => { setActiveSitMsgIdx(idx); setSitCountdown(60); }, 100);
+            }
+            const dailyCount = incrementDailyReflectCount();
+            if (dailyCount === DAILY_SOFT_CAP) { setSoftCapShown(true); }
+            return next;
+          });
           setStreamedText(''); setIsReflecting(false);
           if (convId) saveMessage(convId, 'assistant', assistantText, reflectionLevel);
           if (!user) { incrementAnonCount(); setAnonUsed(prev => prev + 1); }
           else {
+            fetch('/api/presence', { method: 'POST' }).catch(() => {});
             fetch('/api/check-limits', { method: 'POST', headers: { 'x-user-id': user.id } }).then(() => checkLimits());
             if (user.tier === 'paid') {
               trackReflectDay(user.id);
@@ -279,6 +388,20 @@ export default function Home() {
               }).then(() => fetch('/api/extract-themes').then(r => r.json()).then(d => setUserThemes(d.themes || [])));
             }
             fetch('/api/conversations').then(r => r.json()).then(d => setSavedConvos(d.conversations || []));
+            if (convId && currentMsgCount === 3 && !titleRegenFiredRef.current) {
+              titleRegenFiredRef.current = true;
+              const firstThreeUserMsgs = updatedMessages
+                .filter(m => m.role === 'user')
+                .slice(0, 3)
+                .map(m => m.content);
+              fetch('/api/generate-title', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ conversationId: convId, messages: firstThreeUserMsgs }),
+              }).then(r => r.json()).then(d => {
+                if (d.title) setSavedConvos(prev => prev.map(c => c.id === convId ? { ...c, title: d.title } : c));
+              });
+            }
           }
         }
       };
@@ -286,8 +409,21 @@ export default function Home() {
     } catch { setError('The mirror is momentarily unavailable. Please try again in a moment.'); setIsReflecting(false); }
   }, [journalText, messages, confrontation, isReflecting, user, anonUsed, freeRemaining, conversationId, userThemes]);
 
+  const sendChoice = (text: string) => {
+    if (isReflecting) return;
+    pendingChoiceRef.current = text;
+    handleReflect();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleReflect(); } };
-  const goHome = () => { setMessages([]); setJournalText(''); setStreamedText(''); setError(null); setConversationId(null); setScreen('home'); };
+
+  const goHome = () => {
+    setMessages([]); setJournalText(''); setStreamedText(''); setError(null); setConversationId(null);
+    setActiveSitMsgIdx(null); setSitCountdown(0); setSoftCapShown(false);
+    userMsgCountRef.current = 0; titleRegenFiredRef.current = false;
+    setScreen('home');
+  };
+
   const handleLogout = async () => { await supabase.auth.signOut(); setUser(null); goHome(); };
   const handleDeleteConvo = (id: string) => {
     setSavedConvos(prev => prev.filter(c => c.id !== id));
@@ -295,21 +431,6 @@ export default function Home() {
   };
   const handleRenameConvo = (id: string, title: string) => {
     setSavedConvos(prev => prev.map(c => c.id === id ? { ...c, title } : c));
-  };
-  const handleSaveTitle = async () => {
-    if (!conversationId || !saveTitleText.trim()) { setSavingTitle(false); return; }
-    await fetch('/api/conversations', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ conversationId, title: saveTitleText.trim() }),
-    });
-    handleRenameConvo(conversationId, saveTitleText.trim());
-    setSavingTitle(false);
-  };
-  const openSaveDialog = () => {
-    const current = savedConvos.find(c => c.id === conversationId)?.title || '';
-    setSaveTitleText(current);
-    setSavingTitle(true);
   };
   const getLevelInfo = (key: string) => CONFRONTATION_LEVELS.find((l) => l.key === key);
 
@@ -347,7 +468,7 @@ export default function Home() {
 
       <div style={{ position: 'relative', zIndex: 2, maxWidth: 520, margin: '0 auto', padding: '0 28px' }}>
 
-        {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} onSuccess={() => { setShowAuthModal(false); window.location.reload(); }} />}
+        {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
 
         {welcomeToast && (
           <div style={{
@@ -396,7 +517,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* ═══ DISCLAIMER ═══ */}
+        {/* DISCLAIMER */}
         {screen === 'disclaimer' && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', textAlign: 'center', animation: 'fadeIn 0.8s ease', padding: '40px 0' }}>
             <img src="/logo.png" alt="" style={{ width: 32, height: 'auto', marginBottom: 20 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
@@ -413,7 +534,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* ═══ HOME ═══ */}
+        {/* HOME */}
         {screen === 'home' && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100vh', textAlign: 'center', animation: 'fadeIn 0.8s ease', paddingTop: 60, paddingBottom: 40 }}>
 
@@ -454,16 +575,26 @@ export default function Home() {
 
             {/* Reflect days for paid users */}
             {!authLoading && user?.tier === 'paid' && reflectDays > 0 && (
-              <p style={{ fontSize: 13, color: 'var(--text-muted)', fontFamily: F, fontWeight: 300, marginBottom: 20, margin: '0 0 20px 0' }}>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', fontFamily: F, fontWeight: 300, margin: '0 0 8px 0' }}>
                 {reflectDays === 1 ? 'You have reflected for 1 day.' : `You have reflected for ${reflectDays} days.`}
+              </p>
+            )}
+
+            {/* Presence count */}
+            {presenceCount > 0 && (
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: F, fontWeight: 300, margin: '0 0 20px 0', letterSpacing: 1 }}>
+                {presenceCount} {presenceCount === 1 ? 'person' : 'people'} reflected today.
               </p>
             )}
 
             {/* Daily Prompt */}
             <div style={{ borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', padding: '28px 0', margin: '0 0 32px 0', width: '100%' }}>
               <p style={{ fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 16px 0', fontFamily: F }}>Today's Prompt</p>
-              <p style={{ fontSize: 20, lineHeight: 1.6, fontStyle: 'italic', color: 'var(--accent)', margin: 0, fontWeight: 300, fontFamily: F }}>"{dailyPrompt}"</p>
-              <p style={{ fontSize: 13, color: 'var(--text-dim)', marginTop: 14, fontFamily: F, fontWeight: 300, lineHeight: 1.6 }}>Use this, or bring something of your own. The mirror works best when you bring what's deeply true, not the polished version.</p>
+              <p style={{ fontSize: 20, lineHeight: 1.6, fontStyle: 'italic', color: 'var(--accent)', margin: '0 0 12px 0', fontWeight: 300, fontFamily: F }}>"{dailyPrompt}"</p>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '0 0 14px 0', fontFamily: F, fontWeight: 300, fontStyle: 'italic' }}>
+                This prompt is for today's version of you. Tomorrow's will be different.
+              </p>
+              <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: 0, fontFamily: F, fontWeight: 300, lineHeight: 1.6 }}>Use this, or bring something of your own. The mirror works best when you bring what's deeply true, not the polished version.</p>
             </div>
 
             {/* Thoroughness guidance */}
@@ -539,7 +670,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* ═══ MIRROR ═══ */}
+        {/* MIRROR */}
         {screen === 'mirror' && (
           <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', paddingTop: 72, paddingBottom: 140, animation: 'fadeIn 0.6s ease' }}>
 
@@ -556,30 +687,10 @@ export default function Home() {
                   ))}
                   <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 4px' }} />
                   <button onClick={goHome} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F }}>New</button>
-                  {user && conversationId && (
-                    <>
-                      <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 4px' }} />
-                      <button onClick={openSaveDialog} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F }}>Save</button>
-                    </>
-                  )}
                   <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 4px' }} />
                   <button onClick={() => setShowSafetyInfo(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, opacity: 0.6 }}>Safety</button>
                 </div>
               </div>
-              {savingTitle && (
-                <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <input
-                    autoFocus
-                    value={saveTitleText}
-                    onChange={e => setSaveTitleText(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') handleSaveTitle(); if (e.key === 'Escape') setSavingTitle(false); }}
-                    placeholder="Title for this reflection..."
-                    style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border-hover)', color: 'var(--text)', fontSize: 13, padding: '8px 12px', fontFamily: F, fontWeight: 300, outline: 'none' }}
-                  />
-                  <button onClick={handleSaveTitle} style={{ background: 'none', border: '1px solid var(--border-hover)', color: 'var(--text)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', padding: '8px 14px', cursor: 'pointer', fontFamily: F, whiteSpace: 'nowrap' }}>Save</button>
-                  <button onClick={() => setSavingTitle(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 18, cursor: 'pointer', fontFamily: F, padding: 0 }}>x</button>
-                </div>
-              )}
             </div>
 
             {/* Remaining in mirror */}
@@ -594,6 +705,64 @@ export default function Home() {
                   {msg.role === 'user' ? 'You' : (<>The Mirror {msg.level && <span style={{ marginLeft: 6 }}>{getLevelInfo(msg.level)?.icon} <span style={{ fontSize: 10, letterSpacing: 2 }}>{getLevelInfo(msg.level)?.label}</span></span>}</>)}
                 </p>
                 <p style={{ fontSize: msg.role === 'assistant' ? 18 : 15, lineHeight: 1.7, color: msg.role === 'assistant' ? 'var(--text)' : 'var(--text-dim)', fontStyle: msg.role === 'assistant' ? 'italic' : 'normal', fontWeight: 300, margin: 0, borderLeft: msg.role === 'assistant' ? '2px solid var(--border)' : 'none', paddingLeft: msg.role === 'assistant' ? 20 : 0, fontFamily: F }}>{msg.content}</p>
+
+                {/* Signal rendering */}
+                {msg.role === 'assistant' && msg.signal && (
+                  <div style={{ marginTop: 16, paddingLeft: 20 }}>
+                    {msg.signal.type === 'choice' && Array.isArray(msg.signal.data) && (
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        {(msg.signal.data as string[]).map((opt: string, oi: number) => (
+                          <button key={oi} onClick={() => sendChoice(opt)} disabled={isReflecting}
+                            style={{ padding: '8px 16px', background: 'none', border: '1px solid var(--border-hover)', color: 'var(--text-dim)', fontSize: 12, fontFamily: F, fontWeight: 300, cursor: isReflecting ? 'default' : 'pointer', opacity: isReflecting ? 0.4 : 1, letterSpacing: 0.5 }}>
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {msg.signal.type === 'mirror' && typeof msg.signal.data === 'string' && (
+                      <p style={{ fontSize: 14, fontStyle: 'italic', color: 'var(--text-muted)', fontFamily: F, fontWeight: 300, margin: 0, lineHeight: 1.7 }}>
+                        {msg.signal.data as string}
+                      </p>
+                    )}
+                    {msg.signal.type === 'sit' && (
+                      <>
+                        {sitPref === null && activeSitMsgIdx !== i && (
+                          <div style={{ border: '1px solid var(--border)', padding: '16px 18px' }}>
+                            <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 12px 0', fontFamily: F }}>Sit with this?</p>
+                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                              {(['Hold me to it', 'Offer it', 'Not for me'] as const).map((label, pi) => {
+                                const prefs: Array<'hold' | 'offer' | 'none'> = ['hold', 'offer', 'none'];
+                                return (
+                                  <button key={pi} onClick={() => setSitPreference(prefs[pi], i)}
+                                    style={{ padding: '8px 14px', background: 'none', border: '1px solid var(--border)', color: 'var(--text-dim)', fontSize: 11, fontFamily: F, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer' }}>
+                                    {label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                        {sitPref === 'offer' && activeSitMsgIdx !== i && (
+                          <button onClick={() => { setActiveSitMsgIdx(i); setSitCountdown(60); }}
+                            style={{ padding: '8px 16px', background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: 11, fontFamily: F, letterSpacing: 2, textTransform: 'uppercase', cursor: 'pointer' }}>
+                            Sit with this
+                          </button>
+                        )}
+                        {activeSitMsgIdx === i && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 0' }}>
+                            <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: 0, fontFamily: F, fontWeight: 300 }}>
+                              {sitCountdown > 0 ? `Sitting with this. ${sitCountdown}s.` : 'Take your time.'}
+                            </p>
+                            <button onClick={() => { setActiveSitMsgIdx(null); setSitCountdown(0); }}
+                              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 11, fontFamily: F, letterSpacing: 2, textTransform: 'uppercase', cursor: 'pointer', padding: 0 }}>
+                              Done
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
 
@@ -614,6 +783,14 @@ export default function Home() {
             )}
 
             {error && <div style={{ padding: 16, border: '1px solid rgba(255,107,107,0.2)', background: 'rgba(255,107,107,0.03)', marginBottom: 28 }}><p style={{ fontSize: 13, color: 'var(--error)', margin: 0, fontFamily: F }}>{error}</p></div>}
+
+            {softCapShown && (
+              <div style={{ marginBottom: 28, padding: '14px 18px', border: '1px solid var(--border)', textAlign: 'center' }}>
+                <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: 0, fontFamily: F, fontWeight: 300, lineHeight: 1.7, fontStyle: 'italic' }}>
+                  You've reflected deeply today. The mirror works best when you give yourself time to process between sessions.
+                </p>
+              </div>
+            )}
 
             <p style={{ fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-muted)', textAlign: 'center', margin: '40px 0 20px 0', fontFamily: F, opacity: 0.4 }}>
               Powered by BLUNNIT
