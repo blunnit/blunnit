@@ -729,8 +729,8 @@ export default function Home() {
             {/* Messages */}
             {messages.map((msg, i) => (
               <div key={i} style={{ marginBottom: 28 }}>
-                <p style={{ fontSize: 12, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 8px 0', fontFamily: F }}>
-                  {msg.role === 'user' ? 'You' : (<>The Mirror {msg.level && <span style={{ marginLeft: 6, display: 'inline-flex', alignItems: 'center', gap: 5, verticalAlign: 'middle' }}><ConfrontationIcon level={msg.level} size={13} /><span style={{ fontSize: 10, letterSpacing: 2 }}>{getLevelInfo(msg.level)?.label}</span></span>}</>)}
+                <p style={{ fontSize: 12, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 8px 0', fontFamily: F, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {msg.role === 'user' ? 'You' : (<>The Mirror{msg.level && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><ConfrontationIcon level={msg.level} size={13} /><span style={{ fontSize: 10, letterSpacing: 2 }}>{getLevelInfo(msg.level)?.label}</span></span>}</>)}
                 </p>
                 <p style={{ fontSize: msg.role === 'assistant' ? 18 : 15, lineHeight: 1.7, color: msg.role === 'assistant' ? 'var(--text)' : 'var(--text-dim)', fontStyle: msg.role === 'assistant' ? 'italic' : 'normal', fontWeight: 300, margin: 0, borderLeft: msg.role === 'assistant' ? '2px solid var(--border)' : 'none', paddingLeft: msg.role === 'assistant' ? 20 : 0, fontFamily: F }}>{msg.content}</p>
 
@@ -796,7 +796,7 @@ export default function Home() {
 
             {streamedText && (
               <div style={{ marginBottom: 28 }}>
-                <p style={{ fontSize: 12, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 8px 0', fontFamily: F, display: 'flex', alignItems: 'center', gap: 6 }}>The Mirror <ConfrontationIcon level={confrontation} size={13} /><span style={{ fontSize: 10, letterSpacing: 2 }}>{getLevelInfo(confrontation)?.label}</span></p>
+                <p style={{ fontSize: 12, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 8px 0', fontFamily: F, display: 'flex', alignItems: 'center', gap: 6 }}>The Mirror<ConfrontationIcon level={confrontation} size={13} /><span style={{ fontSize: 10, letterSpacing: 2 }}>{getLevelInfo(confrontation)?.label}</span></p>
                 <p style={{ fontSize: 18, lineHeight: 1.7, color: 'var(--text)', fontStyle: 'italic', fontWeight: 300, margin: 0, borderLeft: '2px solid var(--border-hover)', paddingLeft: 20, fontFamily: F }}>
                   {streamedText}<span style={{ display: 'inline-block', width: 2, height: 18, background: 'var(--accent)', marginLeft: 2, animation: 'blink 1s step-end infinite', verticalAlign: 'text-bottom' }} />
                 </p>
@@ -805,7 +805,7 @@ export default function Home() {
 
             {isReflecting && !streamedText && (
               <div style={{ marginBottom: 28 }}>
-                <p style={{ fontSize: 12, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 8px 0', fontFamily: F, display: 'flex', alignItems: 'center', gap: 6 }}>The Mirror <ConfrontationIcon level={confrontation} size={13} /><span style={{ fontSize: 10, letterSpacing: 2 }}>{getLevelInfo(confrontation)?.label}</span></p>
+                <p style={{ fontSize: 12, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 8px 0', fontFamily: F, display: 'flex', alignItems: 'center', gap: 6 }}>The Mirror<ConfrontationIcon level={confrontation} size={13} /><span style={{ fontSize: 10, letterSpacing: 2 }}>{getLevelInfo(confrontation)?.label}</span></p>
                 <div style={{ display: 'flex', gap: 6, paddingLeft: 22, paddingTop: 8 }}>{[0, 1, 2].map((j) => (<div key={j} style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--text-muted)', animation: `pulse 1.4s ease-in-out ${j * 0.2}s infinite` }} />))}</div>
               </div>
             )}
