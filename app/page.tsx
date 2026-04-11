@@ -128,6 +128,7 @@ export default function Home() {
   const [sitCountdown, setSitCountdown] = useState(0);
   const [presenceCount, setPresenceCount] = useState(0);
   const [softCapShown, setSoftCapShown] = useState(false);
+  const [savedConfirm, setSavedConfirm] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const pendingChoiceRef = useRef<string | null>(null);
@@ -432,6 +433,18 @@ export default function Home() {
   const handleRenameConvo = (id: string, title: string) => {
     setSavedConvos(prev => prev.map(c => c.id === id ? { ...c, title } : c));
   };
+  const handleManualSave = async () => {
+    if (!user || !messages.length) return;
+    // If no conversation exists yet, create one now
+    if (!conversationId) {
+      const firstUserMsg = messages.find(m => m.role === 'user');
+      await getOrCreateConversation(firstUserMsg?.content);
+    }
+    // Show confirmation
+    setSavedConfirm(true);
+    setTimeout(() => setSavedConfirm(false), 2000);
+  };
+
   const getLevelInfo = (key: string) => CONFRONTATION_LEVELS.find((l) => l.key === key);
 
   const remaining = getRemaining();
@@ -687,6 +700,12 @@ export default function Home() {
                   ))}
                   <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 4px' }} />
                   <button onClick={goHome} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F }}>New</button>
+                  <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 4px' }} />
+                  {user && (
+                    <button onClick={handleManualSave} style={{ background: 'none', border: 'none', cursor: 'pointer', color: savedConfirm ? 'var(--accent)' : 'var(--text-muted)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, transition: 'color 0.3s ease' }}>
+                      {savedConfirm ? 'Saved' : 'Save'}
+                    </button>
+                  )}
                   <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 4px' }} />
                   <button onClick={() => setShowSafetyInfo(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, opacity: 0.6 }}>Safety</button>
                 </div>
