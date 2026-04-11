@@ -62,19 +62,19 @@ export default function Home() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (authUser) {
-        const { data: profile } = await supabase.from('profiles').select('tier').eq('id', authUser.id).single();
-        setUser({ id: authUser.id, email: authUser.email || '', tier: profile?.tier || 'free' });
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUser({ id: session.user.id, email: session.user.email || '', tier: 'free' });
       }
       setAuthLoading(false);
     };
     checkAuth();
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
-        const { data: profile } = await supabase.from('profiles').select('tier').eq('id', session.user.id).single();
-        setUser({ id: session.user.id, email: session.user.email || '', tier: profile?.tier || 'free' });
-      } else { setUser(null); }
+        setUser({ id: session.user.id, email: session.user.email || '', tier: 'free' });
+      } else {
+        setUser(null);
+      }
     });
     return () => subscription.unsubscribe();
   }, []);
