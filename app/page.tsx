@@ -231,7 +231,7 @@ export default function Home() {
                     <button onClick={handleLogout} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F }}>Log Out</button>
                   </>
                 ) : (
-                  <button onClick={() => setShowAuthModal(true)} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, padding: '6px 14px' }}>Sign In</button>
+                  <button onClick={() => setShowAuthModal(true)} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, padding: '6px 14px' }}>Sign In/Up</button>
                 )}
               </div>
             </div>
