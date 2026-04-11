@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase-browser';
 
+const F = "'Cormorant Garamond', Georgia, serif";
+
 type Props = {
   onClose: () => void;
 };
@@ -40,32 +42,32 @@ export default function AuthModal({ onClose }: Props) {
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 28 }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 28, fontFamily: F }}>
       <div style={{ maxWidth: 400, width: '100%', background: '#000', border: '1px solid #1a1a1a', padding: 32 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
-          <p style={{ fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: '#7a756f', margin: 0 }}>
+          <p style={{ fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: '#7a756f', margin: 0, fontFamily: F }}>
             {mode === 'signup' ? 'Create Account' : 'Welcome Back'}
           </p>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#7a756f', cursor: 'pointer', fontSize: 18, padding: 0 }}>x</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#7a756f', cursor: 'pointer', fontSize: 18, padding: 0, fontFamily: F }}>x</button>
         </div>
 
         <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-          style={{ width: '100%', padding: '14px 16px', marginBottom: 12, background: '#0e0e0e', border: '1px solid #1a1a1a', color: '#e8e4df', fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
+          style={{ width: '100%', padding: '14px 16px', marginBottom: 12, background: '#0e0e0e', border: '1px solid #1a1a1a', color: '#e8e4df', fontSize: 16, outline: 'none', boxSizing: 'border-box', fontFamily: F }} />
 
         <input type="password" placeholder="Password (min 6 characters)" value={password} onChange={(e) => setPassword(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-          style={{ width: '100%', padding: '14px 16px', marginBottom: 20, background: '#0e0e0e', border: '1px solid #1a1a1a', color: '#e8e4df', fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
+          style={{ width: '100%', padding: '14px 16px', marginBottom: 20, background: '#0e0e0e', border: '1px solid #1a1a1a', color: '#e8e4df', fontSize: 16, outline: 'none', boxSizing: 'border-box', fontFamily: F }} />
 
-        {error && <p style={{ fontSize: 13, color: '#ff6b6b', marginBottom: 16 }}>{error}</p>}
+        {error && <p style={{ fontSize: 14, color: '#ff6b6b', marginBottom: 16, fontFamily: F }}>{error}</p>}
 
         <button onClick={handleSubmit} disabled={loading || !email || !password}
-          style={{ width: '100%', padding: '16px 0', background: '#e8e4df', color: '#000', border: 'none', fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', cursor: loading ? 'default' : 'pointer', fontWeight: 500, opacity: loading ? 0.6 : 1 }}>
+          style={{ width: '100%', padding: '16px 0', background: '#e8e4df', color: '#000', border: 'none', fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', cursor: loading ? 'default' : 'pointer', fontWeight: 500, opacity: loading ? 0.6 : 1, fontFamily: F }}>
           {loading ? '...' : mode === 'signup' ? 'Create Account' : 'Log In'}
         </button>
 
         <button onClick={() => { setMode(mode === 'signup' ? 'login' : 'signup'); setError(null); }}
-          style={{ background: 'none', border: 'none', color: '#7a756f', cursor: 'pointer', fontSize: 13, padding: '16px 0 0 0', width: '100%', textAlign: 'center' }}>
+          style={{ background: 'none', border: 'none', color: '#7a756f', cursor: 'pointer', fontSize: 14, padding: '16px 0 0 0', width: '100%', textAlign: 'center', fontFamily: F }}>
           {mode === 'signup' ? 'Already have an account? Log in' : "Don't have an account? Sign up"}
         </button>
       </div>

@@ -42,23 +42,17 @@ function getReflectDays(userId: string): number {
   } catch { return 0; }
 }
 
-function getAnonCount(): number {
-  if (typeof window === 'undefined') return 0;
+function getBrowserFingerprint(): string {
+  if (typeof window === 'undefined') return 'unknown';
   try {
-    const stored = localStorage.getItem('blunnit_anon');
-    if (!stored) return 0;
-    const data = JSON.parse(stored);
-    const today = new Date().toISOString().split('T')[0];
-    if (data.date !== today) { localStorage.removeItem('blunnit_anon'); return 0; }
-    return data.count || 0;
-  } catch { return 0; }
-}
-
-function incrementAnonCount(): void {
-  if (typeof window === 'undefined') return;
-  const today = new Date().toISOString().split('T')[0];
-  const current = getAnonCount();
-  localStorage.setItem('blunnit_anon', JSON.stringify({ date: today, count: current + 1 }));
+    const parts = [
+      screen.width,
+      screen.height,
+      Intl.DateTimeFormat().resolvedOptions().timeZone,
+      navigator.language,
+    ];
+    return btoa(parts.join('|'));
+  } catch { return 'unknown'; }
 }
 
 function getDailyReflectCount(): number {
@@ -138,7 +132,13 @@ export default function Home() {
   const titleRegenFiredRef = useRef(false);
   const supabase = createClient();
 
-  useEffect(() => { setAnonUsed(getAnonCount()); }, []);
+  useEffect(() => {
+    const fp = getBrowserFingerprint();
+    fetch(`/api/anon-limits?fp=${encodeURIComponent(fp)}`)
+      .then(r => r.json())
+      .then(d => setAnonUsed(d.count || 0))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (user?.tier === 'paid') setReflectDays(getReflectDays(user.id));
@@ -376,7 +376,15 @@ export default function Home() {
           });
           setStreamedText(''); setIsReflecting(false);
           if (convId) saveMessage(convId, 'assistant', assistantText, reflectionLevel);
-          if (!user) { incrementAnonCount(); setAnonUsed(prev => prev + 1); }
+          if (!user) {
+            setAnonUsed(prev => prev + 1);
+            const fp = getBrowserFingerprint();
+            fetch('/api/anon-limits', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ fp }),
+            }).catch(() => {});
+          }
           else {
             fetch('/api/presence', { method: 'POST' }).catch(() => {});
             fetch('/api/check-limits', { method: 'POST', headers: { 'x-user-id': user.id } }).then(() => checkLimits());

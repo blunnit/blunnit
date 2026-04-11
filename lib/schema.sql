@@ -137,3 +137,11 @@ create table public.daily_presence (
   date date primary key,
   count integer default 0 not null
 );
+
+-- Anonymous usage tracking (server-side fingerprint, no RLS)
+create table public.anon_usage (
+  fingerprint text not null,
+  date date not null,
+  count integer default 0 not null,
+  primary key (fingerprint, date)
+);
