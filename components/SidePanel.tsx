@@ -58,7 +58,7 @@ export default function SidePanel({
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Delete this reflection? This cannot be undone.')) return;
-    await fetch(`/api/conversations?id=${id}`, { method: 'DELETE' });
+    await fetch(`/api/conversations?id=${id}`, { method: 'DELETE', headers: { 'x-user-id': user?.id || '' } });
     onDeleteConvo(id);
     setPinnedIds(prev => {
       const next = new Set(prev);
@@ -78,7 +78,7 @@ export default function SidePanel({
     if (trimmed) {
       await fetch('/api/conversations', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-user-id': user?.id || '' },
         body: JSON.stringify({ conversationId: id, title: trimmed }),
       });
       onRenameConvo(id, trimmed);

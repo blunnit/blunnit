@@ -1,20 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { createServerSupabase } from '@/lib/supabase-auth-server';
 import { createServiceClient } from '@/lib/supabase-server';
 
 const anthropic = new Anthropic();
 
 // GET: fetch top themes for the authenticated user
-export async function GET(_req: NextRequest) {
-  const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ themes: [] });
+export async function GET(req: NextRequest) {
+  const userId = req.headers.get('x-user-id');
+  if (!userId) return NextResponse.json({ themes: [] });
 
+  const supabase = createServiceClient();
   const { data: themes } = await supabase
     .from('user_themes')
     .select('theme, count')
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .order('count', { ascending: false })
     .limit(10);
 
@@ -23,9 +22,8 @@ export async function GET(_req: NextRequest) {
 
 // POST: extract themes from reflection text and upsert into user_themes
 export async function POST(req: NextRequest) {
-  const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  const userId = req.headers.get('x-user-id');
+  if (!userId) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
   const { text } = await req.json();
   if (!text) return NextResponse.json({ error: 'Missing text' }, { status: 400 });
@@ -50,29 +48,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, themes: [] });
   }
 
-  const serviceClient = createServiceClient();
+  const supabase = createServiceClient();
   const now = new Date().toISOString();
 
   for (const theme of themes.slice(0, 5)) {
     const t = String(theme).toLowerCase().trim().slice(0, 60);
     if (!t) continue;
 
-    const { data: existing } = await serviceClient
+    const { data: existing } = await supabase
       .from('user_themes')
       .select('id, count')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('theme', t)
       .maybeSingle();
 
     if (existing) {
-      await serviceClient
+      await supabase
         .from('user_themes')
         .update({ count: existing.count + 1, last_seen: now })
         .eq('id', existing.id);
     } else {
-      await serviceClient
+      await supabase
         .from('user_themes')
-        .insert({ user_id: user.id, theme: t, count: 1, last_seen: now });
+        .insert({ user_id: userId, theme: t, count: 1, last_seen: now });
     }
   }
 

@@ -209,7 +209,7 @@ export default function Home() {
   const loadConversations = useCallback(async () => {
     if (!user) return;
     try {
-      const res = await fetch('/api/conversations');
+      const res = await fetch('/api/conversations', { headers: { 'x-user-id': user.id } });
       const data = await res.json();
       setSavedConvos(data.conversations || []);
     } catch {}
@@ -218,7 +218,7 @@ export default function Home() {
   const loadThemes = useCallback(async () => {
     if (!user || user.tier !== 'paid') return;
     try {
-      const res = await fetch('/api/extract-themes');
+      const res = await fetch('/api/extract-themes', { headers: { 'x-user-id': user.id } });
       const data = await res.json();
       setUserThemes(data.themes || []);
     } catch {}
@@ -226,7 +226,7 @@ export default function Home() {
 
   const loadConversation = async (convoId: string) => {
     try {
-      const res = await fetch(`/api/conversations?id=${convoId}`);
+      const res = await fetch(`/api/conversations?id=${convoId}`, { headers: { 'x-user-id': user?.id || '' } });
       const data = await res.json();
       if (data.messages) {
         setMessages(data.messages.map((m: any) => ({ role: m.role, content: m.content, level: m.confrontation_level })));
@@ -302,14 +302,14 @@ export default function Home() {
 
   const saveMessage = async (convId: string, role: string, content: string, level?: string) => {
     if (!user) return;
-    await fetch('/api/conversations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'message', conversationId: convId, role, content, confrontationLevel: level }) });
+    await fetch('/api/conversations', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-user-id': user.id }, body: JSON.stringify({ action: 'message', conversationId: convId, role, content, confrontationLevel: level }) });
   };
 
   const getOrCreateConversation = async (firstMsgText?: string): Promise<string | null> => {
     if (!user) return null;
     if (conversationId) return conversationId;
     const title = (firstMsgText || journalText).slice(0, 40).trim() || 'Untitled reflection';
-    const res = await fetch('/api/conversations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'create', confrontation, title }) });
+    const res = await fetch('/api/conversations', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-user-id': user.id }, body: JSON.stringify({ action: 'create', confrontation, title }) });
     const data = await res.json();
     if (data.conversation?.id) {
       setConversationId(data.conversation.id);
@@ -384,11 +384,11 @@ export default function Home() {
               setReflectDays(getReflectDays(user.id));
               fetch('/api/extract-themes', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'x-user-id': user.id },
                 body: JSON.stringify({ text: assistantText }),
-              }).then(() => fetch('/api/extract-themes').then(r => r.json()).then(d => setUserThemes(d.themes || [])));
+              }).then(() => fetch('/api/extract-themes', { headers: { 'x-user-id': user.id } }).then(r => r.json()).then(d => setUserThemes(d.themes || [])));
             }
-            fetch('/api/conversations').then(r => r.json()).then(d => setSavedConvos(d.conversations || []));
+            fetch('/api/conversations', { headers: { 'x-user-id': user.id } }).then(r => r.json()).then(d => setSavedConvos(d.conversations || []));
             if (convId && currentMsgCount === 3 && !titleRegenFiredRef.current) {
               titleRegenFiredRef.current = true;
               const firstThreeUserMsgs = updatedMessages
@@ -397,7 +397,7 @@ export default function Home() {
                 .map(m => m.content);
               fetch('/api/generate-title', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'x-user-id': user.id },
                 body: JSON.stringify({ conversationId: convId, messages: firstThreeUserMsgs }),
               }).then(r => r.json()).then(d => {
                 if (d.title) setSavedConvos(prev => prev.map(c => c.id === convId ? { ...c, title: d.title } : c));

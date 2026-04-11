@@ -1,30 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabase } from '@/lib/supabase-auth-server';
+import { createServiceClient } from '@/lib/supabase-server';
 
 // GET: List conversations or get a specific one
 export async function GET(req: NextRequest) {
-  const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const userId = req.headers.get('x-user-id');
+  if (!userId) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
-  if (!user) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-  }
-
+  const supabase = createServiceClient();
   const { searchParams } = new URL(req.url);
   const conversationId = searchParams.get('id');
 
   if (conversationId) {
-    // Get specific conversation with messages
     const { data: conversation } = await supabase
       .from('conversations')
       .select('*')
       .eq('id', conversationId)
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .single();
 
-    if (!conversation) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 });
-    }
+    if (!conversation) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
     const { data: messages } = await supabase
       .from('messages')
@@ -35,11 +29,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ conversation, messages: messages || [] });
   }
 
-  // List all conversations
   const { data: conversations } = await supabase
     .from('conversations')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .order('updated_at', { ascending: false })
     .limit(50);
 
@@ -48,21 +41,17 @@ export async function GET(req: NextRequest) {
 
 // POST: Create conversation or add message
 export async function POST(req: NextRequest) {
-  const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const userId = req.headers.get('x-user-id');
+  if (!userId) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
-  if (!user) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-  }
-
+  const supabase = createServiceClient();
   const body = await req.json();
 
   if (body.action === 'create') {
-    // Create new conversation
     const { data: conversation, error } = await supabase
       .from('conversations')
       .insert({
-        user_id: user.id,
+        user_id: userId,
         confrontation_level: body.confrontation || 'clear',
         title: body.title || 'Untitled reflection',
       })
@@ -70,6 +59,7 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) {
+      console.error('[conversations] create error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -77,7 +67,6 @@ export async function POST(req: NextRequest) {
   }
 
   if (body.action === 'message') {
-    // Add message to conversation
     const { error } = await supabase
       .from('messages')
       .insert({
@@ -87,13 +76,14 @@ export async function POST(req: NextRequest) {
         confrontation_level: body.confrontationLevel,
       });
 
-    // Update conversation timestamp
     await supabase
       .from('conversations')
       .update({ updated_at: new Date().toISOString() })
-      .eq('id', body.conversationId);
+      .eq('id', body.conversationId)
+      .eq('user_id', userId);
 
     if (error) {
+      console.error('[conversations] message error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -105,49 +95,39 @@ export async function POST(req: NextRequest) {
 
 // PATCH: Rename a conversation
 export async function PATCH(req: NextRequest) {
-  const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const userId = req.headers.get('x-user-id');
+  if (!userId) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
-  if (!user) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-  }
-
+  const supabase = createServiceClient();
   const { conversationId, title } = await req.json();
 
-  if (!conversationId || !title) {
-    return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
-  }
+  if (!conversationId || !title) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
 
   await supabase
     .from('conversations')
     .update({ title: title.slice(0, 100) })
     .eq('id', conversationId)
-    .eq('user_id', user.id);
+    .eq('user_id', userId);
 
   return NextResponse.json({ ok: true });
 }
 
 // DELETE: Remove a conversation
 export async function DELETE(req: NextRequest) {
-  const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const userId = req.headers.get('x-user-id');
+  if (!userId) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
-  if (!user) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-  }
-
+  const supabase = createServiceClient();
   const { searchParams } = new URL(req.url);
   const conversationId = searchParams.get('id');
 
-  if (!conversationId) {
-    return NextResponse.json({ error: 'ID required' }, { status: 400 });
-  }
+  if (!conversationId) return NextResponse.json({ error: 'ID required' }, { status: 400 });
 
   await supabase
     .from('conversations')
     .delete()
     .eq('id', conversationId)
-    .eq('user_id', user.id);
+    .eq('user_id', userId);
 
   return NextResponse.json({ ok: true });
 }
