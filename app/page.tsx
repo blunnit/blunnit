@@ -81,7 +81,10 @@ export default function Home() {
 
   const checkLimits = useCallback(async () => {
     if (!user) return;
-    try { const res = await fetch('/api/check-limits'); const data = await res.json(); setFreeRemaining(data.remaining ?? FREE_WEEKLY_LIMIT); } catch {}
+    if (user.tier === 'paid') { setFreeRemaining(Infinity); return; }
+    const weekKey = 'blunnit_week_' + new Date().toISOString().split('T')[0].slice(0, 7);
+    const used = parseInt(localStorage.getItem(weekKey) || '0');
+    setFreeRemaining(Math.max(0, FREE_WEEKLY_LIMIT - used));
   }, [user]);
 
   const loadConversations = useCallback(async () => {
@@ -157,7 +160,26 @@ export default function Home() {
           setStreamedText(''); setIsReflecting(false);
           if (convId) saveMessage(convId, 'assistant', assistantText, reflectionLevel);
           if (!user) { incrementAnonCount(); setAnonUsed(prev => prev + 1); }
-          else { fetch('/api/check-limits', { method: 'POST' }).then(() => checkLimits()); }
+             const assistantText = data.reflection || 'The mirror is silent. Try again.';
+      let i = 0;
+      const typeWriter = () => {
+        if (i < assistantText.length) { setStreamedText(assistantText.slice(0, i + 1)); i++; setTimeout(typeWriter, 18 + Math.random() * 12); }
+        else {
+          setMessages((prev) => [...prev, { role: 'assistant', content: assistantText, level: reflectionLevel }]);
+          setStreamedText(''); setIsReflecting(false);
+          if (convId) saveMessage(convId, 'assistant', assistantText, reflectionLevel);
+          if (!user) { incrementAnonCount(); setAnonUsed(prev => prev + 1); }
+          else { if (user && user.tier !== 'paid') { const weekKey = 'blunnit_week_' + new Date().toISOString().split('T')[0].slice(0, 7); const used = parseInt(localStorage.getItem(weekKey) || '0'); localStorage.setItem(weekKey, String(used + 1)); } checkLimits(); }
+
+        }
+      };
+      typeWriter();
+    } catch (err: any) { setError(err.message); setIsReflecting(false); }
+  }, [journalText, messages, confrontation, isReflecting, user, anonUsed, freeRemaining, conversationId]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleReflect(); } };
+  const goHome = () => { setMessages([]); setJournalText(''); setStreamedText(''); setError(null); setConversationId(null); setScreen('home'); };
+  const handleLogout = async () => { await s
         }
       };
       typeWriter();
