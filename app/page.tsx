@@ -83,6 +83,9 @@ export default function Home() {
   const [userThemes, setUserThemes] = useState<{ theme: string; count: number }[]>([]);
   const [welcomeToast, setWelcomeToast] = useState(false);
   const [keyboardOffset, setKeyboardOffset] = useState(0);
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [savingTitle, setSavingTitle] = useState(false);
+  const [saveTitleText, setSaveTitleText] = useState('');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
@@ -185,6 +188,37 @@ export default function Home() {
   useEffect(() => { if (!authLoading && user) { checkLimits(); loadConversations(); loadThemes(); } }, [authLoading, user, checkLimits, loadConversations, loadThemes]);
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, streamedText]);
 
+  // Update browser tab title
+  useEffect(() => {
+    document.title = screen === 'mirror' ? 'BLUNNIT Mirror' : 'BLUNNIT — Pierce The Illusion';
+  }, [screen]);
+
+  // Push history state when entering mirror so back button returns to home
+  useEffect(() => {
+    if (screen === 'mirror') {
+      window.history.pushState({ blunnit: 'mirror' }, '');
+    }
+  }, [screen]);
+
+  useEffect(() => {
+    const onPop = () => {
+      setScreen(prev => {
+        if (prev === 'mirror') {
+          setMessages([]);
+          setJournalText('');
+          setStreamedText('');
+          setError(null);
+          setConversationId(null);
+          setSavingTitle(false);
+          return 'home';
+        }
+        return prev;
+      });
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
   const saveMessage = async (convId: string, role: string, content: string, level?: string) => {
     if (!user) return;
     await fetch('/api/conversations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'message', conversationId: convId, role, content, confrontationLevel: level }) });
@@ -249,7 +283,7 @@ export default function Home() {
         }
       };
       typeWriter();
-    } catch (err: any) { setError(err.message); setIsReflecting(false); }
+    } catch { setError('The mirror is momentarily unavailable. Please try again in a moment.'); setIsReflecting(false); }
   }, [journalText, messages, confrontation, isReflecting, user, anonUsed, freeRemaining, conversationId, userThemes]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleReflect(); } };
@@ -261,6 +295,21 @@ export default function Home() {
   };
   const handleRenameConvo = (id: string, title: string) => {
     setSavedConvos(prev => prev.map(c => c.id === id ? { ...c, title } : c));
+  };
+  const handleSaveTitle = async () => {
+    if (!conversationId || !saveTitleText.trim()) { setSavingTitle(false); return; }
+    await fetch('/api/conversations', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conversationId, title: saveTitleText.trim() }),
+    });
+    handleRenameConvo(conversationId, saveTitleText.trim());
+    setSavingTitle(false);
+  };
+  const openSaveDialog = () => {
+    const current = savedConvos.find(c => c.id === conversationId)?.title || '';
+    setSaveTitleText(current);
+    setSavingTitle(true);
   };
   const getLevelInfo = (key: string) => CONFRONTATION_LEVELS.find((l) => l.key === key);
 
@@ -418,10 +467,28 @@ export default function Home() {
             </div>
 
             {/* Thoroughness guidance */}
-            <div style={{ width: '100%', padding: '16px 18px', background: 'var(--surface)', border: '1px solid var(--border)', marginBottom: 32, textAlign: 'left' }}>
+            <div style={{ width: '100%', padding: '16px 18px', background: 'var(--surface)', border: '1px solid var(--border)', marginBottom: 16, textAlign: 'left' }}>
               <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: 0, fontFamily: F, lineHeight: 1.7, fontStyle: 'italic' }}>
                 Be thorough. The mirror responds with questions that go deeper, so the more honestly and completely you write, the more precise and useful the reflection will be. Short entries get surface-level mirrors.
               </p>
+            </div>
+
+            {/* How it works - collapsible */}
+            <div style={{ width: '100%', marginBottom: 32, border: '1px solid var(--border)' }}>
+              <button
+                onClick={() => setShowHowItWorks(v => !v)}
+                style={{ width: '100%', padding: '12px 18px', background: 'none', border: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', fontFamily: F }}
+              >
+                <span style={{ fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-dim)' }}>How it works</span>
+                <span style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1 }}>{showHowItWorks ? '−' : '+'}</span>
+              </button>
+              {showHowItWorks && (
+                <div style={{ padding: '4px 18px 16px', textAlign: 'left' }}>
+                  <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: '0 0 8px 0', fontFamily: F, fontWeight: 300, lineHeight: 1.7 }}>Write what's real. The mirror works best with honesty.</p>
+                  <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: '0 0 8px 0', fontFamily: F, fontWeight: 300, lineHeight: 1.7 }}>Choose your level. Gentle holds space. Piercing strips the frame.</p>
+                  <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: 0, fontFamily: F, fontWeight: 300, lineHeight: 1.7 }}>Reflect. The AI mirrors back what you might not be seeing.</p>
+                </div>
+              )}
             </div>
 
             {/* Confrontation Dial */}
@@ -437,6 +504,15 @@ export default function Home() {
                 ))}
               </div>
             </div>
+
+            {/* Onboarding hint for new logged-in users */}
+            {user && savedConvos.length === 0 && messages.length === 0 && (
+              <div style={{ width: '100%', padding: '14px 18px', border: '1px solid var(--border)', marginBottom: 16, textAlign: 'left' }}>
+                <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: 0, fontFamily: F, fontWeight: 300, lineHeight: 1.8 }}>
+                  This is your mirror. Write what's actually going on, not the polished version. The AI will reflect back what you might not be seeing.
+                </p>
+              </div>
+            )}
 
             {/* Input */}
             <div style={{ width: '100%', marginBottom: 20 }}>
@@ -465,23 +541,45 @@ export default function Home() {
 
         {/* ═══ MIRROR ═══ */}
         {screen === 'mirror' && (
-          <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', paddingTop: 32, paddingBottom: 140, animation: 'fadeIn 0.6s ease' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', paddingTop: 72, paddingBottom: 140, animation: 'fadeIn 0.6s ease' }}>
 
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32, paddingBottom: 16, borderBottom: '1px solid var(--border)', flexWrap: 'wrap', gap: 8 }}>
-              <button onClick={goHome} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: 13, fontFamily: F, letterSpacing: 3, textTransform: 'uppercase', padding: 0 }}>← Home</button>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                {CONFRONTATION_LEVELS.map((level) => (
-                  <button key={level.key} onClick={() => setConfrontation(level.key)} title={`${level.label}: ${level.desc}`} style={{ background: confrontation === level.key ? 'var(--surface)' : 'transparent', border: `1px solid ${confrontation === level.key ? 'var(--border-hover)' : 'transparent'}`, color: confrontation === level.key ? 'var(--text)' : 'var(--text-muted)', cursor: 'pointer', padding: '6px 8px', fontSize: 14, transition: 'all 0.3s ease', display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <span>{level.icon}</span>
-                    {confrontation === level.key && <span style={{ fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', fontFamily: F }}>{level.label}</span>}
-                  </button>
-                ))}
-                <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 4px' }} />
-                <button onClick={goHome} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F }}>New Reflection</button>
-                <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 4px' }} />
-                <button onClick={() => setShowSafetyInfo(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, opacity: 0.6 }}>Safety</button>
+            <div style={{ marginBottom: 32, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                <button onClick={goHome} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: 13, fontFamily: F, letterSpacing: 3, textTransform: 'uppercase', padding: 0 }}>← Home</button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                  {CONFRONTATION_LEVELS.map((level) => (
+                    <button key={level.key} onClick={() => setConfrontation(level.key)} title={`${level.label}: ${level.desc}`} style={{ background: confrontation === level.key ? 'var(--surface)' : 'transparent', border: `1px solid ${confrontation === level.key ? 'var(--border-hover)' : 'transparent'}`, color: confrontation === level.key ? 'var(--text)' : 'var(--text-muted)', cursor: 'pointer', padding: '6px 8px', fontSize: 14, transition: 'all 0.3s ease', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span>{level.icon}</span>
+                      {confrontation === level.key && <span style={{ fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', fontFamily: F }}>{level.label}</span>}
+                    </button>
+                  ))}
+                  <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 4px' }} />
+                  <button onClick={goHome} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F }}>New</button>
+                  {user && conversationId && (
+                    <>
+                      <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 4px' }} />
+                      <button onClick={openSaveDialog} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F }}>Save</button>
+                    </>
+                  )}
+                  <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 4px' }} />
+                  <button onClick={() => setShowSafetyInfo(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, opacity: 0.6 }}>Safety</button>
+                </div>
               </div>
+              {savingTitle && (
+                <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input
+                    autoFocus
+                    value={saveTitleText}
+                    onChange={e => setSaveTitleText(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleSaveTitle(); if (e.key === 'Escape') setSavingTitle(false); }}
+                    placeholder="Title for this reflection..."
+                    style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border-hover)', color: 'var(--text)', fontSize: 13, padding: '8px 12px', fontFamily: F, fontWeight: 300, outline: 'none' }}
+                  />
+                  <button onClick={handleSaveTitle} style={{ background: 'none', border: '1px solid var(--border-hover)', color: 'var(--text)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', padding: '8px 14px', cursor: 'pointer', fontFamily: F, whiteSpace: 'nowrap' }}>Save</button>
+                  <button onClick={() => setSavingTitle(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 18, cursor: 'pointer', fontFamily: F, padding: 0 }}>x</button>
+                </div>
+              )}
             </div>
 
             {/* Remaining in mirror */}

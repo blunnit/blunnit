@@ -4,6 +4,18 @@ export const metadata: Metadata = {
   title: 'BLUNNIT — Pierce The Illusion',
   description: 'A self-awareness mirror powered by AI.',
   manifest: '/manifest.json',
+  openGraph: {
+    title: 'BLUNNIT — Pierce The Illusion',
+    description: 'A self-awareness mirror powered by AI.',
+    images: [{ url: '/logo.png' }],
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'BLUNNIT — Pierce The Illusion',
+    description: 'A self-awareness mirror powered by AI.',
+    images: ['/logo.png'],
+  },
 };
 export const viewport: Viewport = {
   themeColor: '#000000',
