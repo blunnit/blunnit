@@ -35,7 +35,10 @@ function incrementAnonCount(): void {
 }
 
 export default function Home() {
-  const [screen, setScreen] = useState<'disclaimer' | 'home' | 'mirror' | 'upgrade' | 'history'>('disclaimer');
+  const [screen, setScreen] = useState<'disclaimer' | 'home' | 'mirror' | 'upgrade'>(() => {
+    if (typeof window !== 'undefined' && localStorage.getItem('blunnit_accepted')) return 'home';
+    return 'disclaimer';
+  });
   const [journalText, setJournalText] = useState('');
   const [confrontation, setConfrontation] = useState('clear');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -214,7 +217,7 @@ export default function Home() {
               <p style={{ fontSize: 15, lineHeight: 1.8, color: 'var(--text)', marginBottom: 14, fontWeight: 300, fontFamily: F }}>If you are currently experiencing a mental health crisis, please reach out to a professional. You can call or text 988 (Suicide & Crisis Lifeline) or text HOME to 741741 (Crisis Text Line).</p>
               <p style={{ fontSize: 15, lineHeight: 1.8, color: 'var(--text-dim)', fontWeight: 300, fontFamily: F }}>By proceeding, you acknowledge that BLUNNIT provides AI-generated reflections for self-awareness purposes only, and that you assume full responsibility for how you use them.</p>
             </div>
-            <button onClick={() => setScreen('home')} style={{ width: '100%', padding: '18px 0', background: 'var(--btn-bg)', color: 'var(--btn-text)', border: '1px solid var(--btn-bg)', fontSize: 14, letterSpacing: 3, textTransform: 'uppercase', cursor: 'pointer', fontFamily: F, fontWeight: 500 }}>I Understand, Enter</button>
+            <button onClick={() => { localStorage.setItem('blunnit_accepted', 'true'); setScreen('home'); }} style={{ width: '100%', padding: '18px 0', background: 'var(--btn-bg)', color: 'var(--btn-text)', border: '1px solid var(--btn-bg)', fontSize: 14, letterSpacing: 3, textTransform: 'uppercase', cursor: 'pointer', fontFamily: F, fontWeight: 500 }}>I Understand, Enter</button>
           </div>
         )}
 

@@ -40,15 +40,17 @@ export default function AuthModal({ onClose, onSuccess }: Props) {
         if (signInError) {
           setMessage('Account created. Check your email to confirm, then sign in.');
         } else {
-          onSuccess();
+          window.location.reload();
         }
       }
     } else {
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
       if (signInError) {
         setError(signInError.message);
+      } else if (data?.session) {
+        window.location.reload();
       } else {
-        onSuccess();
+        setError('Login failed. Please try again.');
       }
     }
 
