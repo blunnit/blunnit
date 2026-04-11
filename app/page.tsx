@@ -82,13 +82,11 @@ export default function Home() {
   const checkLimits = useCallback(async () => {
     if (!user) return;
     if (user.tier === 'paid') { setFreeRemaining(Infinity); return; }
-    const now = new Date();
-    const day = now.getDay();
-    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-    const monday = new Date(now.getFullYear(), now.getMonth(), diff);
-    const weekKey = 'blunnit_free_' + user.id + '_' + monday.toISOString().split('T')[0];
-    const used = parseInt(localStorage.getItem(weekKey) || '0');
-    setFreeRemaining(Math.max(0, FREE_WEEKLY_LIMIT - used));
+    try {
+      const res = await fetch('/api/check-limits', { headers: { 'x-user-id': user.id } });
+      const data = await res.json();
+      setFreeRemaining(data.remaining ?? FREE_WEEKLY_LIMIT);
+    } catch {}
   }, [user]);
 
   const loadConversations = useCallback(async () => {
@@ -163,7 +161,7 @@ export default function Home() {
           setStreamedText(''); setIsReflecting(false);
           if (convId) saveMessage(convId, 'assistant', assistantText, reflectionLevel);
           if (!user) { incrementAnonCount(); setAnonUsed(prev => prev + 1); }
-          else { if (user.tier !== 'paid') { const now = new Date(); const day = now.getDay(); const diff = now.getDate() - day + (day === 0 ? -6 : 1); const monday = new Date(now.getFullYear(), now.getMonth(), diff); const weekKey = 'blunnit_free_' + user.id + '_' + monday.toISOString().split('T')[0]; const used = parseInt(localStorage.getItem(weekKey) || '0'); localStorage.setItem(weekKey, String(used + 1)); } checkLimits(); }
+          else { fetch('/api/check-limits', { method: 'POST', headers: { 'x-user-id': user.id } }).then(() => checkLimits()); }
         }
       };
       typeWriter();
