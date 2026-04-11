@@ -8,7 +8,9 @@ export default function UpgradePage({ onBack }: { onBack: () => void }) {
   const handleUpgrade = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/checkout', { method: 'POST' });
+      const userStr = localStorage.getItem('blunnit-auth');
+const userData = userStr ? JSON.parse(userStr) : null;
+const res = await fetch('/api/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: userData?.user?.id, email: userData?.user?.email }) });
       const data = await res.json();
       if (data.url) {
         window.location.href = data.url;
