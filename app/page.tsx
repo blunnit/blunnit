@@ -138,7 +138,6 @@ export default function Home() {
     if (!journalText.trim() || isReflecting) return;
     if (!user && anonUsed >= ANON_LIMIT) { setShowAuthModal(true); return; }
     if (user && user.tier === 'free' && freeRemaining <= 0) { setScreen('upgrade'); return; }
-
     setError(null); setIsReflecting(true); setStreamedText('');
     const userMessage: Message = { role: 'user', content: journalText };
     const updatedMessages = [...messages, userMessage];
@@ -160,17 +159,7 @@ export default function Home() {
           setStreamedText(''); setIsReflecting(false);
           if (convId) saveMessage(convId, 'assistant', assistantText, reflectionLevel);
           if (!user) { incrementAnonCount(); setAnonUsed(prev => prev + 1); }
-             const assistantText = data.reflection || 'The mirror is silent. Try again.';
-      let i = 0;
-      const typeWriter = () => {
-        if (i < assistantText.length) { setStreamedText(assistantText.slice(0, i + 1)); i++; setTimeout(typeWriter, 18 + Math.random() * 12); }
-        else {
-          setMessages((prev) => [...prev, { role: 'assistant', content: assistantText, level: reflectionLevel }]);
-          setStreamedText(''); setIsReflecting(false);
-          if (convId) saveMessage(convId, 'assistant', assistantText, reflectionLevel);
-          if (!user) { incrementAnonCount(); setAnonUsed(prev => prev + 1); }
-          else { if (user && user.tier !== 'paid') { const weekKey = 'blunnit_week_' + new Date().toISOString().split('T')[0].slice(0, 7); const used = parseInt(localStorage.getItem(weekKey) || '0'); localStorage.setItem(weekKey, String(used + 1)); } checkLimits(); }
-
+          else { if (user.tier !== 'paid') { const weekKey = 'blunnit_week_' + new Date().toISOString().split('T')[0].slice(0, 7); const used = parseInt(localStorage.getItem(weekKey) || '0'); localStorage.setItem(weekKey, String(used + 1)); } checkLimits(); }
         }
       };
       typeWriter();
