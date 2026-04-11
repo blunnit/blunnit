@@ -204,7 +204,7 @@ export default function Home() {
         {/* ═══ DISCLAIMER ═══ */}
         {screen === 'disclaimer' && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', textAlign: 'center', animation: 'fadeIn 0.8s ease', padding: '40px 0' }}>
-            <img src="/logo.png" alt="" style={{ width: 56, height: 'auto', marginBottom: 20 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            <img src="/logo.png" alt="" style={{ width: 32, height: 'auto', marginBottom: 20 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
             <h1 style={{ fontSize: 28, fontWeight: 400, letterSpacing: 6, margin: '0 0 6px 0', fontFamily: F, textTransform: 'uppercase' }}>The Blunnit Mirror</h1>
             <p style={{ fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--text-muted)', margin: '0 0 40px 0', fontFamily: F }}>Pierce The Illusion</p>
             <div style={{ textAlign: 'left', width: '100%', border: '1px solid var(--border)', padding: 24, marginBottom: 24 }}>
@@ -236,7 +236,7 @@ export default function Home() {
               </div>
             </div>
 
-            <img src="/logo.png" alt="" style={{ width: 64, height: 'auto', marginTop: 20, marginBottom: 16 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            <img src="/logo.png" alt="" style={{ width: 36, height: 'auto', marginTop: 20, marginBottom: 16 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
             <h1 style={{ fontSize: 36, fontWeight: 400, letterSpacing: 8, margin: '0 0 4px 0', fontFamily: F, textTransform: 'uppercase' }}>The Blunnit Mirror</h1>
             <p style={{ fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--text-muted)', margin: '0 0 40px 0', fontFamily: F }}>Pierce The Illusion</p>
 
