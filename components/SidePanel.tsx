@@ -21,6 +21,17 @@ type Props = {
   onNewReflection: () => void;
 };
 
+const hoverMuted = (e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
+  const el = e.currentTarget as HTMLElement;
+  el.style.color = 'var(--text-dim)';
+  el.style.borderColor = 'var(--border-hover)';
+};
+const unhoverMuted = (e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
+  const el = e.currentTarget as HTMLElement;
+  el.style.color = 'var(--text-muted)';
+  el.style.borderColor = 'var(--border)';
+};
+
 export default function SidePanel({
   open, user, savedConvos, onClose, onLoadConvo, onDeleteConvo, onRenameConvo,
   onShowSafety, onLogout, onUpgrade, onNewReflection,
@@ -49,7 +60,6 @@ export default function SidePanel({
     } catch {}
   }, []);
 
-  // Close menu on outside click
   useEffect(() => {
     if (!openMenuId) return;
     const handler = (e: MouseEvent) => {
@@ -159,7 +169,9 @@ export default function SidePanel({
           </span>
           <button
             onClick={onClose}
-            style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 20, fontFamily: F, lineHeight: 1, padding: 0 }}
+            style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 20, fontFamily: F, lineHeight: 1, padding: 0, transition: 'color 0.2s ease' }}
+            onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; }}
           >
             x
           </button>
@@ -222,11 +234,16 @@ export default function SidePanel({
                         return (
                           <div
                             key={c.id}
-                            style={{ position: 'relative', border: `1px solid ${pinned ? 'var(--border-hover)' : 'var(--border)'}` }}
+                            style={{
+                              position: 'relative',
+                              border: `1px solid ${pinned ? 'var(--border-hover)' : 'var(--border)'}`,
+                              transition: 'border-color 0.2s ease',
+                            }}
                             ref={menuOpen ? menuRef : undefined}
+                            onMouseEnter={e => { if (!pinned) e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
+                            onMouseLeave={e => { if (!pinned) e.currentTarget.style.borderColor = 'var(--border)'; }}
                           >
                             <div style={{ display: 'flex', alignItems: 'stretch' }}>
-                              {/* Main button */}
                               <button
                                 onClick={() => { onLoadConvo(c.id); onClose(); }}
                                 style={{
@@ -245,7 +262,6 @@ export default function SidePanel({
                                 </div>
                               </button>
 
-                              {/* Three-dot menu trigger */}
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -257,14 +273,16 @@ export default function SidePanel({
                                   color: menuOpen ? 'var(--text)' : 'var(--text-muted)',
                                   cursor: 'pointer', padding: '0 10px', fontSize: 16,
                                   fontFamily: F, flexShrink: 0, lineHeight: 1,
-                                  transition: 'color 0.15s ease',
+                                  transition: 'color 0.2s ease',
                                 }}
+                                onMouseEnter={e => { if (!menuOpen) e.currentTarget.style.color = 'var(--text-dim)'; }}
+                                onMouseLeave={e => { if (!menuOpen) e.currentTarget.style.color = 'var(--text-muted)'; }}
                               >
                                 ⋮
                               </button>
                             </div>
 
-                            {/* Dropdown menu */}
+                            {/* Dropdown */}
                             {menuOpen && (
                               <div style={{
                                 position: 'absolute', right: 0, top: '100%',
@@ -282,9 +300,10 @@ export default function SidePanel({
                                         borderBottom: '1px solid var(--border)',
                                         color: 'var(--text-dim)', fontSize: 12, fontFamily: F,
                                         fontWeight: 300, cursor: 'pointer', letterSpacing: 0.5,
+                                        transition: 'color 0.2s ease',
                                       }}
-                                      onMouseEnter={e => (e.currentTarget.style.color = 'var(--text)')}
-                                      onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-dim)')}
+                                      onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; }}
+                                      onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; }}
                                     >
                                       Rename
                                     </button>
@@ -296,9 +315,10 @@ export default function SidePanel({
                                         borderBottom: '1px solid var(--border)',
                                         color: 'var(--text-dim)', fontSize: 12, fontFamily: F,
                                         fontWeight: 300, cursor: 'pointer', letterSpacing: 0.5,
+                                        transition: 'color 0.2s ease',
                                       }}
-                                      onMouseEnter={e => (e.currentTarget.style.color = 'var(--text)')}
-                                      onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-dim)')}
+                                      onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; }}
+                                      onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; }}
                                     >
                                       {pinned ? 'Unpin' : 'Pin'}
                                     </button>
@@ -307,11 +327,12 @@ export default function SidePanel({
                                       style={{
                                         display: 'block', width: '100%', textAlign: 'left',
                                         padding: '10px 14px', background: 'none', border: 'none',
-                                        color: '#ff6b6b', fontSize: 12, fontFamily: F,
+                                        color: '#6b3030', fontSize: 12, fontFamily: F,
                                         fontWeight: 300, cursor: 'pointer', letterSpacing: 0.5,
+                                        transition: 'color 0.2s ease',
                                       }}
-                                      onMouseEnter={e => (e.currentTarget.style.opacity = '0.7')}
-                                      onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+                                      onMouseEnter={e => { e.currentTarget.style.color = '#ff6b6b'; }}
+                                      onMouseLeave={e => { e.currentTarget.style.color = '#6b3030'; }}
                                     >
                                       Delete
                                     </button>
@@ -326,10 +347,13 @@ export default function SidePanel({
                                         onClick={() => handleDelete(c.id)}
                                         style={{
                                           flex: 1, padding: '7px 0', background: 'none',
-                                          border: '1px solid rgba(255,107,107,0.4)',
-                                          color: '#ff6b6b', fontSize: 10, fontFamily: F,
+                                          border: '1px solid #4a2020',
+                                          color: '#6b3030', fontSize: 10, fontFamily: F,
                                           letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer',
+                                          transition: 'border-color 0.2s ease, color 0.2s ease',
                                         }}
+                                        onMouseEnter={e => { e.currentTarget.style.borderColor = '#ff6b6b'; e.currentTarget.style.color = '#ff6b6b'; }}
+                                        onMouseLeave={e => { e.currentTarget.style.borderColor = '#4a2020'; e.currentTarget.style.color = '#6b3030'; }}
                                       >
                                         Yes
                                       </button>
@@ -340,7 +364,10 @@ export default function SidePanel({
                                           border: '1px solid var(--border)',
                                           color: 'var(--text-muted)', fontSize: 10, fontFamily: F,
                                           letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer',
+                                          transition: 'border-color 0.2s ease, color 0.2s ease',
                                         }}
+                                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; e.currentTarget.style.color = 'var(--text-dim)'; }}
+                                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
                                       >
                                         Cancel
                                       </button>
@@ -372,7 +399,10 @@ export default function SidePanel({
                               padding: '9px 10px', border: '1px solid var(--border)',
                               background: 'transparent', width: '100%', textAlign: 'left',
                               cursor: 'pointer', fontFamily: F,
+                              transition: 'border-color 0.2s ease',
                             }}
+                            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; }}
                           >
                             <span style={{ fontSize: 9, color: 'var(--text-muted)', opacity: 0.5, flexShrink: 0 }}>■</span>
                             <span style={{ fontSize: 12, fontWeight: 300, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
@@ -397,7 +427,10 @@ export default function SidePanel({
                       background: 'none', border: '1px solid var(--border-hover)',
                       color: 'var(--text)', fontSize: 10, letterSpacing: 2,
                       textTransform: 'uppercase', cursor: 'pointer', fontFamily: F,
+                      transition: 'border-color 0.2s ease, color 0.2s ease',
                     }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--text-muted)'; e.currentTarget.style.color = 'var(--text)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; e.currentTarget.style.color = 'var(--text)'; }}
                   >
                     Get Full Access
                   </button>
@@ -417,7 +450,10 @@ export default function SidePanel({
               border: '1px solid var(--border-hover)',
               color: 'var(--text)', fontSize: 10, letterSpacing: 2,
               textTransform: 'uppercase', cursor: 'pointer', fontFamily: F,
+              transition: 'border-color 0.2s ease, color 0.2s ease',
             }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--text-muted)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
           >
             New Reflection
           </button>
@@ -443,7 +479,10 @@ export default function SidePanel({
               color: 'var(--accent)', fontSize: 10, letterSpacing: 2,
               textTransform: 'uppercase', textDecoration: 'none',
               textAlign: 'center', fontFamily: F,
+              transition: 'border-color 0.2s ease, color 0.2s ease',
             }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(212, 207, 200, 0.5)'; e.currentTarget.style.color = 'var(--text)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(212, 207, 200, 0.25)'; e.currentTarget.style.color = 'var(--accent)'; }}
           >
             7-Day Protocol
           </a>
@@ -455,7 +494,10 @@ export default function SidePanel({
               border: '1px solid var(--border)',
               color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2,
               textTransform: 'uppercase', cursor: 'pointer', fontFamily: F,
+              transition: 'border-color 0.2s ease, color 0.2s ease',
             }}
+            onMouseEnter={e => hoverMuted(e)}
+            onMouseLeave={e => unhoverMuted(e)}
           >
             Safety & Disclaimer
           </button>
@@ -466,11 +508,14 @@ export default function SidePanel({
               disabled={cancelling}
               style={{
                 padding: '11px 0', background: 'none',
-                border: '1px solid rgba(255,107,107,0.3)',
-                color: '#ff6b6b', fontSize: 10, letterSpacing: 2,
+                border: '1px solid #4a2020',
+                color: '#4a2020', fontSize: 10, letterSpacing: 2,
                 textTransform: 'uppercase', cursor: cancelling ? 'default' : 'pointer',
                 fontFamily: F, opacity: cancelling ? 0.5 : 1,
+                transition: 'border-color 0.2s ease, color 0.2s ease',
               }}
+              onMouseEnter={e => { if (!cancelling) { e.currentTarget.style.borderColor = '#6b3030'; e.currentTarget.style.color = '#6b3030'; } }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = '#4a2020'; e.currentTarget.style.color = '#4a2020'; }}
             >
               {cancelling ? 'Cancelling...' : 'Cancel Subscription'}
             </button>
@@ -489,7 +534,10 @@ export default function SidePanel({
               border: '1px solid var(--border)',
               color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2,
               textTransform: 'uppercase', cursor: 'pointer', fontFamily: F,
+              transition: 'border-color 0.2s ease, color 0.2s ease',
             }}
+            onMouseEnter={e => hoverMuted(e)}
+            onMouseLeave={e => unhoverMuted(e)}
           >
             Log Out
           </button>

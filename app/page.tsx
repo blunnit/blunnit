@@ -690,7 +690,7 @@ export default function Home() {
             {/* Header */}
             <div style={{ marginBottom: 32, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                <button onClick={goHome} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: 13, fontFamily: F, letterSpacing: 3, textTransform: 'uppercase', padding: 0 }}>← Home</button>
+                <button onClick={goHome} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: 13, fontFamily: F, letterSpacing: 3, textTransform: 'uppercase', padding: 0, transition: 'color 0.2s ease' }} onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; }}>← Home</button>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
                   {CONFRONTATION_LEVELS.map((level) => (
                     <button key={level.key} onClick={() => setConfrontation(level.key)} title={`${level.label}: ${level.desc}`} style={{ background: confrontation === level.key ? 'var(--surface)' : 'transparent', border: `1px solid ${confrontation === level.key ? 'var(--border-hover)' : 'transparent'}`, color: confrontation === level.key ? 'var(--text)' : 'var(--text-muted)', cursor: 'pointer', padding: '6px 8px', fontSize: 14, transition: 'all 0.3s ease', display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -699,15 +699,15 @@ export default function Home() {
                     </button>
                   ))}
                   <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 4px' }} />
-                  <button onClick={goHome} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F }}>New</button>
+                  <button onClick={goHome} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, transition: 'color 0.2s ease' }} onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-dim)'; }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; }}>New</button>
                   <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 4px' }} />
                   {user && (
-                    <button onClick={handleManualSave} style={{ background: 'none', border: 'none', cursor: 'pointer', color: savedConfirm ? 'var(--accent)' : 'var(--text-muted)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, transition: 'color 0.3s ease' }}>
+                    <button onClick={handleManualSave} style={{ background: 'none', border: 'none', cursor: 'pointer', color: savedConfirm ? 'var(--accent)' : 'var(--text-muted)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, transition: 'color 0.2s ease' }} onMouseEnter={e => { if (!savedConfirm) e.currentTarget.style.color = 'var(--text-dim)'; }} onMouseLeave={e => { if (!savedConfirm) e.currentTarget.style.color = 'var(--text-muted)'; }}>
                       {savedConfirm ? 'Saved' : 'Save'}
                     </button>
                   )}
                   <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 4px' }} />
-                  <button onClick={() => setShowSafetyInfo(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, opacity: 0.6 }}>Safety</button>
+                  <button onClick={() => setShowSafetyInfo(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, transition: 'color 0.2s ease' }} onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-dim)'; }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; }}>Safety</button>
                 </div>
               </div>
             </div>
