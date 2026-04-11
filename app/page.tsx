@@ -81,6 +81,9 @@ export default function Home() {
   const [showSidePanel, setShowSidePanel] = useState(false);
   const [reflectDays, setReflectDays] = useState(0);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [userThemes, setUserThemes] = useState<{ theme: string; count: number }[]>([]);
+  const [welcomeToast, setWelcomeToast] = useState(false);
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
@@ -133,6 +136,15 @@ export default function Home() {
     } catch {}
   }, [user]);
 
+  const loadThemes = useCallback(async () => {
+    if (!user || user.tier !== 'paid') return;
+    try {
+      const res = await fetch('/api/extract-themes');
+      const data = await res.json();
+      setUserThemes(data.themes || []);
+    } catch {}
+  }, [user]);
+
   const loadConversation = async (convoId: string) => {
     try {
       const res = await fetch(`/api/conversations?id=${convoId}`);
@@ -146,7 +158,32 @@ export default function Home() {
     } catch {}
   };
 
-  useEffect(() => { if (!authLoading && user) { checkLimits(); loadConversations(); } }, [authLoading, user, checkLimits, loadConversations]);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('upgraded') === 'true') {
+      setWelcomeToast(true);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('upgraded');
+      window.history.replaceState({}, '', url.toString());
+      const timer = setTimeout(() => setWelcomeToast(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  useEffect(() => {
+    const vv = (window as any).visualViewport;
+    if (!vv) return;
+    const handler = () => {
+      const offset = window.innerHeight - vv.height - vv.offsetTop;
+      setKeyboardOffset(Math.max(0, offset));
+    };
+    vv.addEventListener('resize', handler);
+    vv.addEventListener('scroll', handler);
+    return () => { vv.removeEventListener('resize', handler); vv.removeEventListener('scroll', handler); };
+  }, []);
+
+  useEffect(() => { if (!authLoading && user) { checkLimits(); loadConversations(); loadThemes(); } }, [authLoading, user, checkLimits, loadConversations, loadThemes]);
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, streamedText]);
 
   const saveMessage = async (convId: string, role: string, content: string, level?: string) => {
@@ -185,7 +222,7 @@ export default function Home() {
     const convId = await getOrCreateConversation();
     if (convId) await saveMessage(convId, 'user', userMessage.content);
     try {
-      const response = await fetch('/api/reflect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: updatedMessages.map((m) => ({ role: m.role, content: m.content })), confrontation: reflectionLevel }) });
+      const response = await fetch('/api/reflect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: updatedMessages.map((m) => ({ role: m.role, content: m.content })), confrontation: reflectionLevel, userThemes }) });
       if (!response.ok) { const errData = await response.json().catch(() => ({})); throw new Error(errData?.error || `Error: ${response.status}`); }
       const data = await response.json();
       const assistantText = data.reflection || 'The mirror is silent. Try again.';
@@ -202,6 +239,11 @@ export default function Home() {
             if (user.tier === 'paid') {
               trackReflectDay(user.id);
               setReflectDays(getReflectDays(user.id));
+              fetch('/api/extract-themes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: assistantText }),
+              }).then(() => fetch('/api/extract-themes').then(r => r.json()).then(d => setUserThemes(d.themes || [])));
               if (wasNewConvo && convId) {
                 fetch('/api/generate-title', {
                   method: 'POST',
@@ -217,7 +259,7 @@ export default function Home() {
       };
       typeWriter();
     } catch (err: any) { setError(err.message); setIsReflecting(false); }
-  }, [journalText, messages, confrontation, isReflecting, user, anonUsed, freeRemaining, conversationId]);
+  }, [journalText, messages, confrontation, isReflecting, user, anonUsed, freeRemaining, conversationId, userThemes]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleReflect(); } };
   const goHome = () => { setMessages([]); setJournalText(''); setStreamedText(''); setError(null); setConversationId(null); setScreen('home'); };
@@ -243,22 +285,39 @@ export default function Home() {
 
       {/* Fixed auth bar - always rendered, no layout shift */}
       <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 10, padding: '10px 28px', background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', justifyContent: user ? 'flex-start' : 'flex-end', alignItems: 'center' }}>
-          {!authLoading && (user ? (
-            <button onClick={() => setShowSidePanel(true)} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 18, fontFamily: F, padding: '3px 13px', lineHeight: 1.3 }}>
-              =
-            </button>
-          ) : (
-            <button onClick={() => setShowAuthModal(true)} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, padding: '6px 14px' }}>
-              Sign In / Up
-            </button>
-          ))}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            {!authLoading && user && (
+              <button onClick={() => setShowSidePanel(true)} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 18, fontFamily: F, padding: '3px 13px', lineHeight: 1.3 }}>
+                =
+              </button>
+            )}
+          </div>
+          <div>
+            {!authLoading && !user && (
+              <button onClick={() => setShowAuthModal(true)} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, padding: '6px 14px' }}>
+                Sign In / Up
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
       <div style={{ position: 'relative', zIndex: 2, maxWidth: 520, margin: '0 auto', padding: '0 28px' }}>
 
         {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} onSuccess={() => { setShowAuthModal(false); window.location.reload(); }} />}
+
+        {welcomeToast && (
+          <div style={{
+            position: 'fixed', top: 60, left: '50%', transform: 'translateX(-50%)',
+            zIndex: 300, background: 'var(--surface)', border: '1px solid var(--border-hover)',
+            padding: '14px 28px', fontFamily: F, fontSize: 13, color: 'var(--text)',
+            letterSpacing: 2, textAlign: 'center', animation: 'fadeIn 0.3s ease',
+            whiteSpace: 'nowrap', textTransform: 'uppercase',
+          }}>
+            Welcome to Full Access
+          </div>
+        )}
 
         <SidePanel
           open={showSidePanel}
@@ -271,6 +330,7 @@ export default function Home() {
           onShowSafety={() => setShowSafetyInfo(true)}
           onLogout={handleLogout}
           onUpgrade={() => setScreen('upgrade')}
+          onNewReflection={() => { setShowSidePanel(false); goHome(); }}
         />
 
         {/* Safety Modal */}
@@ -387,14 +447,24 @@ export default function Home() {
 
             {/* Input */}
             <div style={{ width: '100%', marginBottom: 20 }}>
-              <textarea value={journalText} onChange={(e) => setJournalText(e.target.value)} onKeyDown={handleKeyDown} placeholder="What's actually going on? The mirror works best when you bring what's real..." rows={5} style={{ width: '100%', background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 16, lineHeight: 1.8, padding: 20, fontFamily: F, fontWeight: 300, resize: 'vertical', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.3s' }} onFocus={(e) => { e.target.style.borderColor = 'var(--border-hover)'; }} onBlur={(e) => { e.target.style.borderColor = 'var(--border)'; }} />
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: F }}>{journalText.length > 0 ? `${journalText.length} characters` : 'Shift+Enter for new line'}</span>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: F }}>Enter to reflect</span>
-              </div>
+              {remaining <= 0 && tier !== 'paid' ? (
+                <div style={{ width: '100%', padding: '20px', background: 'var(--surface)', border: '1px solid var(--border)', boxSizing: 'border-box', textAlign: 'center' }}>
+                  <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0, fontFamily: F, fontWeight: 300, lineHeight: 1.7 }}>
+                    {tier === 'anonymous' ? 'You have used your guest reflections for today. Sign up to continue.' : 'You have used your reflections for this week. Upgrade for unlimited access.'}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <textarea value={journalText} onChange={(e) => setJournalText(e.target.value)} onKeyDown={handleKeyDown} placeholder="What's actually going on? The mirror works best when you bring what's real..." rows={5} style={{ width: '100%', background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 16, lineHeight: 1.8, padding: 20, fontFamily: F, fontWeight: 300, resize: 'vertical', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.3s' }} onFocus={(e) => { e.target.style.borderColor = 'var(--border-hover)'; }} onBlur={(e) => { e.target.style.borderColor = 'var(--border)'; }} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: F }}>{journalText.length > 0 ? `${journalText.length} characters` : 'Shift+Enter for new line'}</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: F }}>Enter to reflect</span>
+                  </div>
+                </>
+              )}
             </div>
 
-            <button onClick={handleReflect} disabled={!journalText.trim() || isReflecting} style={{ width: '100%', padding: '18px 0', background: journalText.trim() ? 'var(--btn-bg)' : 'var(--surface)', color: journalText.trim() ? 'var(--btn-text)' : 'var(--text-muted)', border: `1px solid ${journalText.trim() ? 'var(--btn-bg)' : 'var(--border)'}`, fontSize: 14, letterSpacing: 3, textTransform: 'uppercase', cursor: journalText.trim() ? 'pointer' : 'default', fontFamily: F, fontWeight: 500, transition: 'all 0.3s ease' }}>{isReflecting ? 'Looking deeper...' : 'Reflect'}</button>
+            <button onClick={handleReflect} disabled={!journalText.trim() || isReflecting || (remaining <= 0 && tier !== 'paid')} style={{ width: '100%', padding: '18px 0', background: journalText.trim() && (remaining > 0 || tier === 'paid') ? 'var(--btn-bg)' : 'var(--surface)', color: journalText.trim() && (remaining > 0 || tier === 'paid') ? 'var(--btn-text)' : 'var(--text-muted)', border: `1px solid ${journalText.trim() && (remaining > 0 || tier === 'paid') ? 'var(--btn-bg)' : 'var(--border)'}`, fontSize: 14, letterSpacing: 3, textTransform: 'uppercase', cursor: journalText.trim() && (remaining > 0 || tier === 'paid') ? 'pointer' : 'default', fontFamily: F, fontWeight: 500, transition: 'all 0.3s ease' }}>{isReflecting ? 'Looking deeper...' : 'Reflect'}</button>
 
             <button onClick={() => setShowSafetyInfo(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', padding: '32px 0 20px 0', fontFamily: F }}>Safety & Disclaimer</button>
           </div>
@@ -415,7 +485,7 @@ export default function Home() {
                   </button>
                 ))}
                 <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 4px' }} />
-                <button onClick={goHome} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F }}>New</button>
+                <button onClick={goHome} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F }}>New Reflection</button>
                 <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 4px' }} />
                 <button onClick={() => setShowSafetyInfo(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, opacity: 0.6 }}>Safety</button>
               </div>
@@ -471,10 +541,14 @@ export default function Home() {
             )}
 
             {error && <div style={{ padding: 16, border: '1px solid rgba(255,107,107,0.2)', background: 'rgba(255,107,107,0.03)', marginBottom: 28 }}><p style={{ fontSize: 13, color: 'var(--error)', margin: 0, fontFamily: F }}>{error}</p></div>}
+
+            <p style={{ fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-muted)', textAlign: 'center', margin: '40px 0 20px 0', fontFamily: F, opacity: 0.4 }}>
+              Powered by BLUNNIT
+            </p>
             <div ref={messagesEndRef} />
 
             {/* Bottom input */}
-            <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 10, background: 'linear-gradient(transparent, var(--bg) 20%)', padding: '40px 28px 28px' }}>
+            <div style={{ position: 'fixed', bottom: keyboardOffset, left: 0, right: 0, zIndex: 10, background: 'linear-gradient(transparent, var(--bg) 20%)', padding: '40px 28px 28px' }}>
               <div style={{ maxWidth: 520, margin: '0 auto', display: 'flex', gap: 8 }}>
                 <textarea value={journalText} onChange={(e) => setJournalText(e.target.value)} onKeyDown={handleKeyDown} placeholder="Go deeper..." rows={2} disabled={isReflecting} style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 15, lineHeight: 1.6, padding: '14px 16px', fontFamily: F, fontWeight: 300, resize: 'none', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.3s', opacity: isReflecting ? 0.5 : 1 }} onFocus={(e) => { e.target.style.borderColor = 'var(--border-hover)'; }} onBlur={(e) => { e.target.style.borderColor = 'var(--border)'; }} />
                 <button onClick={handleReflect} disabled={!journalText.trim() || isReflecting} style={{ padding: '14px 20px', background: journalText.trim() && !isReflecting ? 'var(--btn-bg)' : 'var(--surface)', color: journalText.trim() && !isReflecting ? 'var(--btn-text)' : 'var(--text-muted)', border: `1px solid ${journalText.trim() && !isReflecting ? 'var(--btn-bg)' : 'var(--border)'}`, fontSize: 13, letterSpacing: 2, textTransform: 'uppercase', cursor: journalText.trim() && !isReflecting ? 'pointer' : 'default', fontFamily: F, fontWeight: 500, transition: 'all 0.3s ease', whiteSpace: 'nowrap' }}>↵</button>

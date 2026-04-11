@@ -8,14 +8,21 @@ const anthropic = new Anthropic({
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, confrontation } = await req.json();
+    const { messages, confrontation, userThemes } = await req.json();
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json({ error: 'Messages required' }, { status: 400 });
     }
 
     const level = confrontation || 'clear';
-    const systemPrompt = SYSTEM_PROMPT_BASE + (CONFRONTATION_PROMPTS[level] || CONFRONTATION_PROMPTS.clear);
+    let systemPrompt = SYSTEM_PROMPT_BASE + (CONFRONTATION_PROMPTS[level] || CONFRONTATION_PROMPTS.clear);
+
+    if (Array.isArray(userThemes) && userThemes.length > 0) {
+      const themeList = userThemes
+        .map((t: { theme: string; count: number }) => `${t.theme} (seen ${t.count} time${t.count !== 1 ? 's' : ''})`)
+        .join(', ');
+      systemPrompt += `\n\nThis user's recurring themes based on past reflections: ${themeList}. Use this context to ask sharper questions and notice patterns, but never announce that you're reading from stored data. Let it feel like natural awareness.`;
+    }
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',

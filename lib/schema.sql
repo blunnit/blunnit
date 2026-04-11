@@ -113,3 +113,21 @@ create trigger on_auth_user_created
 create index idx_conversations_user_id on public.conversations(user_id);
 create index idx_messages_conversation_id on public.messages(conversation_id);
 create index idx_reflection_counts_user_week on public.reflection_counts(user_id, week_start);
+
+-- User themes for memory layer (paid users only)
+create table public.user_themes (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  theme text not null,
+  count integer default 1 not null,
+  last_seen timestamptz default now() not null,
+  constraint user_themes_user_theme_unique unique (user_id, theme)
+);
+
+alter table public.user_themes enable row level security;
+
+create policy "Users can manage their own themes"
+  on public.user_themes for all
+  using (auth.uid() = user_id);
+
+create index idx_user_themes_user_count on public.user_themes(user_id, count desc);

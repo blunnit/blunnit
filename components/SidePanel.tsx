@@ -18,17 +18,26 @@ type Props = {
   onShowSafety: () => void;
   onLogout: () => void;
   onUpgrade: () => void;
+  onNewReflection: () => void;
 };
 
 export default function SidePanel({
   open, user, savedConvos, onClose, onLoadConvo, onDeleteConvo, onRenameConvo,
-  onShowSafety, onLogout, onUpgrade,
+  onShowSafety, onLogout, onUpgrade, onNewReflection,
 }: Props) {
   const [cancelling, setCancelling] = useState(false);
   const [cancelDone, setCancelDone] = useState(false);
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 520);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   useEffect(() => {
     try {
@@ -97,6 +106,8 @@ export default function SidePanel({
     return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
   });
 
+  const panelWidth = isMobile ? '100vw' : 300;
+
   return (
     <>
       {/* Overlay */}
@@ -114,8 +125,8 @@ export default function SidePanel({
       {/* Panel - slides from LEFT */}
       <div style={{
         position: 'fixed', top: 0, left: 0, bottom: 0,
-        width: 300, zIndex: 201,
-        background: '#000', borderRight: '1px solid var(--border)',
+        width: panelWidth, zIndex: 201,
+        background: '#000', borderRight: isMobile ? 'none' : '1px solid var(--border)',
         transform: open ? 'translateX(0)' : 'translateX(-100%)',
         transition: 'transform 0.3s ease',
         display: 'flex', flexDirection: 'column',
@@ -145,7 +156,7 @@ export default function SidePanel({
                   {user.email}
                 </p>
                 <p style={{ fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--text-muted)', margin: 0, fontFamily: F }}>
-                  {isPaid ? 'Full Access' : 'Free'}
+                  {isPaid ? '◆ Full Access' : 'Free'}
                 </p>
               </div>
 
@@ -195,7 +206,6 @@ export default function SidePanel({
                               border: `1px solid ${pinned ? 'var(--border-hover)' : 'var(--border)'}`,
                             }}
                           >
-                            {/* Click to load */}
                             <button
                               onClick={() => { onLoadConvo(c.id); onClose(); }}
                               style={{
@@ -214,7 +224,6 @@ export default function SidePanel({
                               </div>
                             </button>
 
-                            {/* Action buttons */}
                             <div style={{ display: 'flex', flexDirection: 'column', borderLeft: '1px solid var(--border)', flexShrink: 0 }}>
                               <button
                                 onClick={() => startEdit(c.id, c.title)}
@@ -243,19 +252,8 @@ export default function SidePanel({
                       })}
                     </div>
                   )}
-
-                  {/* Pattern Report placeholder */}
-                  <div style={{ marginTop: 16, padding: '12px 14px', border: '1px solid var(--border)' }}>
-                    <p style={{ fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 6px 0', fontFamily: F }}>
-                      Pattern Report
-                    </p>
-                    <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0, fontFamily: F, fontWeight: 300, fontStyle: 'italic' }}>
-                      Pattern reports coming soon.
-                    </p>
-                  </div>
                 </div>
               ) : (
-                /* Free user: upgrade prompt */
                 <div style={{ marginBottom: 20, padding: '16px', border: '1px solid var(--border)' }}>
                   <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: '0 0 14px 0', fontFamily: F, fontWeight: 300, lineHeight: 1.7 }}>
                     Upgrade to Full Access to save and revisit your reflections.
@@ -277,14 +275,41 @@ export default function SidePanel({
           )}
         </div>
 
-        {/* 7-Day Protocol link */}
-        <div style={{ flexShrink: 0, paddingTop: 12, paddingBottom: 10 }}>
+        {/* Fixed bottom section */}
+        <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 7, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+
+          {/* New Reflection */}
+          <button
+            onClick={() => { onClose(); onNewReflection(); }}
+            style={{
+              padding: '11px 0', background: 'none',
+              border: '1px solid var(--border-hover)',
+              color: 'var(--text)', fontSize: 10, letterSpacing: 2,
+              textTransform: 'uppercase', cursor: 'pointer', fontFamily: F,
+            }}
+          >
+            New Reflection
+          </button>
+
+          {/* Pattern Report (paid only) */}
+          {isPaid && (
+            <div style={{ padding: '12px 14px', border: '1px solid var(--border)' }}>
+              <p style={{ fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 4px 0', fontFamily: F }}>
+                Pattern Report
+              </p>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0, fontFamily: F, fontWeight: 300, fontStyle: 'italic' }}>
+                Pattern reports coming soon.
+              </p>
+            </div>
+          )}
+
+          {/* 7-Day Protocol */}
           <a
             href="https://blunnit.gumroad.com/l/protocol"
             target="_blank"
             rel="noopener noreferrer"
             style={{
-              display: 'block', padding: '12px 0',
+              display: 'block', padding: '11px 0',
               border: '1px solid rgba(212, 207, 200, 0.25)',
               color: 'var(--accent)', fontSize: 10, letterSpacing: 2,
               textTransform: 'uppercase', textDecoration: 'none',
@@ -293,10 +318,21 @@ export default function SidePanel({
           >
             7-Day Protocol
           </a>
-        </div>
 
-        {/* Bottom actions */}
-        <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 7, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+          {/* Safety */}
+          <button
+            onClick={() => { onClose(); onShowSafety(); }}
+            style={{
+              padding: '11px 0', background: 'none',
+              border: '1px solid var(--border)',
+              color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2,
+              textTransform: 'uppercase', cursor: 'pointer', fontFamily: F,
+            }}
+          >
+            Safety & Disclaimer
+          </button>
+
+          {/* Cancel Subscription (paid only) */}
           {isPaid && !cancelDone && (
             <button
               onClick={handleCancelSubscription}
@@ -319,18 +355,7 @@ export default function SidePanel({
             </p>
           )}
 
-          <button
-            onClick={() => { onClose(); onShowSafety(); }}
-            style={{
-              padding: '11px 0', background: 'none',
-              border: '1px solid var(--border)',
-              color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2,
-              textTransform: 'uppercase', cursor: 'pointer', fontFamily: F,
-            }}
-          >
-            Safety & Disclaimer
-          </button>
-
+          {/* Log Out */}
           <button
             onClick={onLogout}
             style={{
