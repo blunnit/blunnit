@@ -254,10 +254,40 @@ export default function SidePanel({
                   )}
                 </div>
               ) : (
-                <div style={{ marginBottom: 20, padding: '16px', border: '1px solid var(--border)' }}>
-                  <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: '0 0 14px 0', fontFamily: F, fontWeight: 300, lineHeight: 1.7 }}>
-                    Upgrade to Full Access to save and revisit your reflections.
+                <div style={{ marginBottom: 16 }}>
+                  <p style={{ fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 10px 0', fontFamily: F }}>
+                    Past Reflections
                   </p>
+                  {savedConvos.length > 0 ? (
+                    <>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 12 }}>
+                        {savedConvos.slice(0, 15).map(c => (
+                          <button
+                            key={c.id}
+                            onClick={() => { onClose(); onUpgrade(); }}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 8,
+                              padding: '9px 10px', border: '1px solid var(--border)',
+                              background: 'transparent', width: '100%', textAlign: 'left',
+                              cursor: 'pointer', fontFamily: F,
+                            }}
+                          >
+                            <span style={{ fontSize: 9, color: 'var(--text-muted)', opacity: 0.5, flexShrink: 0 }}>■</span>
+                            <span style={{ fontSize: 12, fontWeight: 300, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                              {c.title || 'Untitled reflection'}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                      <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '0 0 12px 0', fontFamily: F, fontWeight: 300, lineHeight: 1.6 }}>
+                        Upgrade to revisit past reflections.
+                      </p>
+                    </>
+                  ) : (
+                    <p style={{ fontSize: 13, color: 'var(--text-muted)', fontFamily: F, fontWeight: 300, margin: '0 0 14px 0' }}>
+                      No reflections yet.
+                    </p>
+                  )}
                   <button
                     onClick={() => { onClose(); onUpgrade(); }}
                     style={{

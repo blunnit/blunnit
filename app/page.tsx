@@ -80,7 +80,6 @@ export default function Home() {
   const [savedConvos, setSavedConvos] = useState<SavedConvo[]>([]);
   const [showSidePanel, setShowSidePanel] = useState(false);
   const [reflectDays, setReflectDays] = useState(0);
-  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [userThemes, setUserThemes] = useState<{ theme: string; count: number }[]>([]);
   const [welcomeToast, setWelcomeToast] = useState(false);
   const [keyboardOffset, setKeyboardOffset] = useState(0);
@@ -128,7 +127,7 @@ export default function Home() {
   }, [user]);
 
   const loadConversations = useCallback(async () => {
-    if (!user || user.tier !== 'paid') return;
+    if (!user) return;
     try {
       const res = await fetch('/api/conversations');
       const data = await res.json();
@@ -192,9 +191,10 @@ export default function Home() {
   };
 
   const getOrCreateConversation = async (): Promise<string | null> => {
-    if (!user || user.tier !== 'paid') return null;
+    if (!user) return null;
     if (conversationId) return conversationId;
-    const res = await fetch('/api/conversations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'create', confrontation, title: journalText.slice(0, 40) }) });
+    const title = journalText.slice(0, 40).trim() || 'Untitled reflection';
+    const res = await fetch('/api/conversations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'create', confrontation, title }) });
     const data = await res.json();
     if (data.conversation?.id) { setConversationId(data.conversation.id); return data.conversation.id; }
     return null;
@@ -217,7 +217,6 @@ export default function Home() {
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
     const reflectionLevel = confrontation;
-    const wasNewConvo = !conversationId && user?.tier === 'paid';
     setJournalText(''); setScreen('mirror');
     const convId = await getOrCreateConversation();
     if (convId) await saveMessage(convId, 'user', userMessage.content);
@@ -244,16 +243,8 @@ export default function Home() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text: assistantText }),
               }).then(() => fetch('/api/extract-themes').then(r => r.json()).then(d => setUserThemes(d.themes || [])));
-              if (wasNewConvo && convId) {
-                fetch('/api/generate-title', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ conversationId: convId, firstMessage: userMessage.content }),
-                }).then(() => fetch('/api/conversations').then(r => r.json()).then(d => setSavedConvos(d.conversations || [])));
-              } else {
-                fetch('/api/conversations').then(r => r.json()).then(d => setSavedConvos(d.conversations || []));
-              }
             }
+            fetch('/api/conversations').then(r => r.json()).then(d => setSavedConvos(d.conversations || []));
           }
         }
       };
@@ -283,25 +274,27 @@ export default function Home() {
       {/* Grain */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 1, opacity: 0.03, background: `url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")` }} />
 
-      {/* Fixed auth bar - always rendered, no layout shift */}
-      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 10, padding: '10px 28px', background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            {!authLoading && user && (
-              <button onClick={() => setShowSidePanel(true)} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 18, fontFamily: F, padding: '3px 13px', lineHeight: 1.3 }}>
-                =
-              </button>
-            )}
-          </div>
-          <div>
-            {!authLoading && !user && (
-              <button onClick={() => setShowAuthModal(true)} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, padding: '6px 14px' }}>
-                Sign In / Up
-              </button>
-            )}
+      {/* Fixed auth bar - hidden on disclaimer screen */}
+      {screen !== 'disclaimer' && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 10, padding: '10px 28px', background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              {!authLoading && user && (
+                <button onClick={() => setShowSidePanel(true)} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 18, fontFamily: F, padding: '3px 13px', lineHeight: 1.3 }}>
+                  =
+                </button>
+              )}
+            </div>
+            <div>
+              {!authLoading && !user && (
+                <button onClick={() => setShowAuthModal(true)} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, padding: '6px 14px' }}>
+                  Sign In / Up
+                </button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div style={{ position: 'relative', zIndex: 2, maxWidth: 520, margin: '0 auto', padding: '0 28px' }}>
 
@@ -503,24 +496,6 @@ export default function Home() {
                   {msg.role === 'user' ? 'You' : (<>The Mirror {msg.level && <span style={{ marginLeft: 6 }}>{getLevelInfo(msg.level)?.icon} <span style={{ fontSize: 10, letterSpacing: 2 }}>{getLevelInfo(msg.level)?.label}</span></span>}</>)}
                 </p>
                 <p style={{ fontSize: msg.role === 'assistant' ? 18 : 15, lineHeight: 1.7, color: msg.role === 'assistant' ? 'var(--text)' : 'var(--text-dim)', fontStyle: msg.role === 'assistant' ? 'italic' : 'normal', fontWeight: 300, margin: 0, borderLeft: msg.role === 'assistant' ? '2px solid var(--border)' : 'none', paddingLeft: msg.role === 'assistant' ? 20 : 0, fontFamily: F }}>{msg.content}</p>
-                {msg.role === 'assistant' && user?.tier === 'paid' && (
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(msg.content + '\n\nReflected in the BLUNNIT Mirror');
-                      setCopiedIdx(i);
-                      setTimeout(() => setCopiedIdx(prev => prev === i ? null : prev), 2000);
-                    }}
-                    style={{
-                      marginTop: 10, background: 'none', border: 'none',
-                      color: copiedIdx === i ? 'var(--text-dim)' : 'var(--text-muted)',
-                      fontSize: 10, letterSpacing: 2, textTransform: 'uppercase',
-                      cursor: 'pointer', fontFamily: F, padding: '4px 0',
-                      transition: 'color 0.3s',
-                    }}
-                  >
-                    {copiedIdx === i ? 'Copied' : 'Share'}
-                  </button>
-                )}
               </div>
             ))}
 
