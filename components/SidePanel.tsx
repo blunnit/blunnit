@@ -211,8 +211,8 @@ export default function SidePanel({
 
   const rowBtn = (dimRed = false, disabled = false) => ({
     width: '100%', padding: '11px 14px', background: 'none',
-    border: `1px solid ${dimRed ? '#4a2020' : 'var(--border-hover)'}`,
-    color: dimRed ? '#4a2020' : 'var(--text-dim)',
+    border: `1px solid ${dimRed ? '#5a2828' : 'rgba(212, 207, 200, 0.25)'}`,
+    color: dimRed ? '#5a2828' : 'var(--accent)',
     fontSize: 10, letterSpacing: 2, textTransform: 'uppercase' as const,
     cursor: disabled ? 'default' : 'pointer', fontFamily: F,
     transition: 'border-color 0.2s ease, color 0.2s ease',
@@ -632,13 +632,13 @@ export default function SidePanel({
                   style={{
                     padding: '11px 14px', background: 'none',
                     border: '1px solid var(--border-hover)',
-                    color: 'var(--text-dim)', fontSize: 10, letterSpacing: 2,
+                    color: 'var(--text)', fontSize: 10, letterSpacing: 2,
                     textTransform: 'uppercase', cursor: 'pointer', fontFamily: F,
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     transition: 'border-color 0.2s ease, color 0.2s ease',
                   }}
                   onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--text-muted)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
                 >
                   <span>Manage Account</span>
                   <span style={{ fontSize: 10 }}>{String.fromCharCode(8250)}</span>
@@ -666,9 +666,9 @@ export default function SidePanel({
                     </span>
                     <button
                       onClick={() => { setEditingName(true); setNameValue(displayName || ''); }}
-                      style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', cursor: 'pointer', fontFamily: F, transition: 'color 0.2s ease', padding: 0 }}
-                      onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-dim)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; }}
+                      style={{ background: 'none', border: 'none', color: 'var(--text-dim)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', cursor: 'pointer', fontFamily: F, transition: 'color 0.2s ease', padding: 0 }}
+                      onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; }}
                     >
                       Edit Name
                     </button>
@@ -695,9 +695,9 @@ export default function SidePanel({
                       </button>
                       <button
                         onClick={() => setEditingName(false)}
-                        style={{ flex: 1, padding: '8px 0', background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: 10, fontFamily: F, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', transition: 'border-color 0.2s ease, color 0.2s ease' }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; e.currentTarget.style.color = 'var(--text-dim)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                        style={{ flex: 1, padding: '8px 0', background: 'none', border: '1px solid var(--border-hover)', color: 'var(--text-dim)', fontSize: 10, fontFamily: F, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', transition: 'border-color 0.2s ease, color 0.2s ease' }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--text-muted)'; e.currentTarget.style.color = 'var(--text)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; e.currentTarget.style.color = 'var(--text-dim)'; }}
                       >
                         Cancel
                       </button>
@@ -711,7 +711,7 @@ export default function SidePanel({
                     onClick={() => { setChangingPassword(true); setPasswordError(null); setPasswordSuccess(false); }}
                     style={{ ...rowBtn(), textAlign: 'center' }}
                     onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--text-muted)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.borderColor = 'rgba(212, 207, 200, 0.25)'; }}
                   >
                     Change Password
                   </button>
@@ -751,9 +751,9 @@ export default function SidePanel({
                           </button>
                           <button
                             onClick={() => { setChangingPassword(false); setNewPassword(''); setConfirmPassword(''); setPasswordError(null); }}
-                            style={{ flex: 1, padding: '8px 0', background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: 10, fontFamily: F, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', transition: 'border-color 0.2s ease, color 0.2s ease' }}
-                            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; e.currentTarget.style.color = 'var(--text-dim)'; }}
-                            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                            style={{ flex: 1, padding: '8px 0', background: 'none', border: '1px solid var(--border-hover)', color: 'var(--text-dim)', fontSize: 10, fontFamily: F, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', transition: 'border-color 0.2s ease, color 0.2s ease' }}
+                            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--text-muted)'; e.currentTarget.style.color = 'var(--text)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; e.currentTarget.style.color = 'var(--text-dim)'; }}
                           >
                             Cancel
                           </button>
@@ -817,13 +817,13 @@ export default function SidePanel({
                   href="/privacy"
                   style={{
                     display: 'block', padding: '11px 14px', textAlign: 'center',
-                    border: '1px solid var(--border-hover)',
-                    color: 'var(--text-dim)', fontSize: 10, letterSpacing: 2,
+                    border: '1px solid rgba(212, 207, 200, 0.25)',
+                    color: 'var(--accent)', fontSize: 10, letterSpacing: 2,
                     textTransform: 'uppercase', textDecoration: 'none', fontFamily: F,
                     transition: 'border-color 0.2s ease, color 0.2s ease',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--text-muted)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
+                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'rgba(212, 207, 200, 0.5)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.borderColor = 'rgba(212, 207, 200, 0.25)'; }}
                 >
                   Privacy Policy
                 </a>
@@ -832,13 +832,13 @@ export default function SidePanel({
                   href="/terms"
                   style={{
                     display: 'block', padding: '11px 14px', textAlign: 'center',
-                    border: '1px solid var(--border-hover)',
-                    color: 'var(--text-dim)', fontSize: 10, letterSpacing: 2,
+                    border: '1px solid rgba(212, 207, 200, 0.25)',
+                    color: 'var(--accent)', fontSize: 10, letterSpacing: 2,
                     textTransform: 'uppercase', textDecoration: 'none', fontFamily: F,
                     transition: 'border-color 0.2s ease, color 0.2s ease',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--text-muted)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
+                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'rgba(212, 207, 200, 0.5)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.borderColor = 'rgba(212, 207, 200, 0.25)'; }}
                 >
                   Terms of Service
                 </a>
@@ -847,7 +847,7 @@ export default function SidePanel({
                   onClick={() => { onClose(); onShowSafety(); }}
                   style={{ ...rowBtn(), textAlign: 'center' }}
                   onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--text-muted)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.borderColor = 'rgba(212, 207, 200, 0.25)'; }}
                 >
                   Safety & Disclaimer
                 </button>
@@ -866,7 +866,7 @@ export default function SidePanel({
                     disabled={cancelling}
                     style={{ ...rowBtn(true, cancelling), textAlign: 'center' }}
                     onMouseEnter={e => { if (!cancelling) { e.currentTarget.style.borderColor = '#6b3030'; e.currentTarget.style.color = '#6b3030'; } }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#4a2020'; e.currentTarget.style.color = '#4a2020'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#5a2828'; e.currentTarget.style.color = '#5a2828'; }}
                   >
                     {cancelling ? 'Cancelling...' : 'Cancel Subscription'}
                   </button>
@@ -882,7 +882,7 @@ export default function SidePanel({
                   onClick={onLogout}
                   style={{ ...rowBtn(), textAlign: 'center' }}
                   onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--text-muted)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.borderColor = 'rgba(212, 207, 200, 0.25)'; }}
                 >
                   Log Out
                 </button>
@@ -892,12 +892,12 @@ export default function SidePanel({
                     onClick={() => setConfirmDelete(true)}
                     style={{ ...rowBtn(true), textAlign: 'center' }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = '#6b3030'; e.currentTarget.style.color = '#6b3030'; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#4a2020'; e.currentTarget.style.color = '#4a2020'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#5a2828'; e.currentTarget.style.color = '#5a2828'; }}
                   >
                     Delete Account
                   </button>
                 ) : (
-                  <div style={{ border: '1px solid #4a2020', padding: '14px 16px' }}>
+                  <div style={{ border: '1px solid #5a2828', padding: '14px 16px' }}>
                     <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '0 0 4px 0', fontFamily: F, fontWeight: 300, lineHeight: 1.6 }}>
                       Permanently delete your account, all conversations, and all data. This cannot be undone.
                     </p>
@@ -912,14 +912,14 @@ export default function SidePanel({
                         disabled={deleting}
                         style={{
                           flex: 1, padding: '8px 0', background: 'none',
-                          border: '1px solid #4a2020', color: '#6b3030',
+                          border: '1px solid #5a2828', color: '#6b3030',
                           fontSize: 10, fontFamily: F, letterSpacing: 1,
                           textTransform: 'uppercase', cursor: deleting ? 'default' : 'pointer',
                           opacity: deleting ? 0.5 : 1,
                           transition: 'border-color 0.2s ease, color 0.2s ease',
                         }}
                         onMouseEnter={e => { if (!deleting) { e.currentTarget.style.borderColor = '#ff6b6b'; e.currentTarget.style.color = '#ff6b6b'; } }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = '#4a2020'; e.currentTarget.style.color = '#6b3030'; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = '#5a2828'; e.currentTarget.style.color = '#6b3030'; }}
                       >
                         {deleting ? 'Deleting...' : 'Yes, Delete'}
                       </button>
@@ -927,13 +927,13 @@ export default function SidePanel({
                         onClick={() => setConfirmDelete(false)}
                         style={{
                           flex: 1, padding: '8px 0', background: 'none',
-                          border: '1px solid var(--border)', color: 'var(--text-muted)',
+                          border: '1px solid var(--border-hover)', color: 'var(--text-dim)',
                           fontSize: 10, fontFamily: F, letterSpacing: 1,
                           textTransform: 'uppercase', cursor: 'pointer',
                           transition: 'border-color 0.2s ease, color 0.2s ease',
                         }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; e.currentTarget.style.color = 'var(--text-dim)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--text-muted)'; e.currentTarget.style.color = 'var(--text)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; e.currentTarget.style.color = 'var(--text-dim)'; }}
                       >
                         Cancel
                       </button>
