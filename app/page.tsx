@@ -14,7 +14,7 @@ type Message = { role: 'user' | 'assistant'; content: string; level?: string; si
 type UserState = { id: string; email: string; tier: string } | null;
 type SavedConvo = { id: string; title: string; updated_at: string; confrontation_level: string };
 
-const ANON_LIMIT = 3;
+const ANON_DAILY_LIMIT = 3;
 const FREE_WEEKLY_LIMIT = 10;
 const DAILY_SOFT_CAP = 15;
 const F = "'Cormorant Garamond', Georgia, serif";
@@ -42,14 +42,6 @@ function getReflectDays(userId: string): number {
   } catch { return 0; }
 }
 
-function getBrowserFingerprint(): string {
-  if (typeof window === 'undefined') return 'unknown';
-  try {
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const lang = navigator.language;
-    return btoa(screen.width + 'x' + screen.height + '_' + tz + '_' + lang);
-  } catch { return 'unknown'; }
-}
 
 function getDailyReflectCount(): number {
   if (typeof window === 'undefined') return 0;
@@ -104,7 +96,7 @@ export default function Home() {
   const [user, setUser] = useState<UserState>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
-  const [anonUsed, setAnonUsed] = useState(0);
+  const [anonRemaining, setAnonRemaining] = useState(ANON_DAILY_LIMIT);
   const [freeRemaining, setFreeRemaining] = useState(FREE_WEEKLY_LIMIT);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [savedConvos, setSavedConvos] = useState<SavedConvo[]>([]);
@@ -126,17 +118,23 @@ export default function Home() {
   const sitPrefRef = useRef(sitPref);
   const userMsgCountRef = useRef(0);
   const titleRegenFiredRef = useRef(false);
+  const fingerprintRef = useRef<string>('');
   const supabase = createClient();
 
+  // Generate fingerprint once on mount and fetch remaining anon count from server
   useEffect(() => {
-    const fp = getBrowserFingerprint();
-    fetch(`/api/anon-limits?fp=${encodeURIComponent(fp)}`)
+    if (typeof window === 'undefined') return;
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const lang = navigator.language;
+      fingerprintRef.current = btoa(screen.width + 'x' + screen.height + '_' + tz + '_' + lang);
+    } catch {
+      fingerprintRef.current = 'unknown';
+    }
+    if (!fingerprintRef.current || fingerprintRef.current === 'unknown') return;
+    fetch(`/api/anon-limits?fingerprint=${encodeURIComponent(fingerprintRef.current)}`)
       .then(r => r.json())
-      .then(d => {
-        setAnonUsed(d.count || 0);
-        // Pre-populate remaining so the UI shows the right count immediately
-        if (!d.allowed) setAnonUsed(ANON_LIMIT);
-      })
+      .then(d => { if (typeof d.remaining === 'number') setAnonRemaining(d.remaining); })
       .catch(() => {});
   }, []);
 
@@ -322,7 +320,7 @@ export default function Home() {
   };
 
   const getRemaining = (): number => {
-    if (!user) return Math.max(0, ANON_LIMIT - anonUsed);
+    if (!user) return anonRemaining;
     if (user.tier === 'paid') return Infinity;
     return freeRemaining;
   };
@@ -342,15 +340,15 @@ export default function Home() {
     const textToUse = choiceText ?? journalText;
     if (!textToUse.trim() || isReflecting) return;
     if (!user) {
-      // Server-side check: always authoritative, persists across incognito / refresh
+      // Always re-check server before each reflection — server is sole source of truth
       try {
-        const fp = getBrowserFingerprint();
-        const limitRes = await fetch(`/api/anon-limits?fp=${encodeURIComponent(fp)}`);
+        const limitRes = await fetch(`/api/anon-limits?fingerprint=${encodeURIComponent(fingerprintRef.current)}`);
         const limitData = await limitRes.json();
+        if (typeof limitData.remaining === 'number') setAnonRemaining(limitData.remaining);
         if (!limitData.allowed) { setShowAuthModal(true); return; }
       } catch {
-        // Server unreachable: fall back to in-memory count
-        if (anonUsed >= ANON_LIMIT) { setShowAuthModal(true); return; }
+        // Server unreachable: use cached remaining count
+        if (anonRemaining <= 0) { setShowAuthModal(true); return; }
       }
     }
     if (user && user.tier === 'free' && freeRemaining <= 0) { setScreen('upgrade'); return; }
@@ -388,15 +386,14 @@ export default function Home() {
           setStreamedText(''); setIsReflecting(false);
           if (convId) saveMessage(convId, 'assistant', assistantText, reflectionLevel);
           if (!user) {
-            const fp = getBrowserFingerprint();
             fetch('/api/anon-limits', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ fp }),
-            }).then(() => fetch(`/api/anon-limits?fp=${encodeURIComponent(fp)}`))
+              body: JSON.stringify({ fingerprint: fingerprintRef.current }),
+            })
               .then(r => r.json())
-              .then(d => setAnonUsed(d.count || 0))
-              .catch(() => setAnonUsed(prev => prev + 1));
+              .then(d => { if (typeof d.remaining === 'number') setAnonRemaining(d.remaining); })
+              .catch(() => setAnonRemaining(prev => Math.max(0, prev - 1)));
           }
           else {
             fetch('/api/presence', { method: 'POST' }).catch(() => {});
@@ -432,7 +429,7 @@ export default function Home() {
       };
       typeWriter();
     } catch { setError('The mirror is momentarily unavailable. Please try again in a moment.'); setIsReflecting(false); }
-  }, [journalText, messages, confrontation, isReflecting, user, anonUsed, freeRemaining, conversationId, userThemes]);
+  }, [journalText, messages, confrontation, isReflecting, user, anonRemaining, freeRemaining, conversationId, userThemes]);
 
   const sendChoice = (text: string) => {
     if (isReflecting) return;
@@ -842,7 +839,7 @@ export default function Home() {
             {/* Bottom input */}
             <div style={{ position: 'fixed', bottom: keyboardOffset, left: 0, right: 0, zIndex: 10, background: 'linear-gradient(transparent, var(--bg) 20%)', padding: '40px 28px 28px' }}>
               <div style={{ maxWidth: 520, margin: '0 auto', display: 'flex', gap: 8 }}>
-                {!user && anonUsed >= ANON_LIMIT ? (
+                {!user && anonRemaining <= 0 ? (
                   <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '14px 16px', background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => setShowAuthModal(true)}>
                     <span style={{ fontSize: 13, color: 'var(--text-muted)', fontFamily: F, fontWeight: 300 }}>Create an account to continue reflecting</span>
                   </div>
