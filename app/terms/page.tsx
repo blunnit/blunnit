@@ -31,7 +31,7 @@ export default function TermsPage() {
       <div style={{ maxWidth: 620, margin: '0 auto' }}>
 
         <Link href="/" style={{ fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-muted)', textDecoration: 'none', display: 'inline-block', marginBottom: 48 }}>
-          Back to BLUNNIT
+          Back to Mirror
         </Link>
 
         <h1 style={{ fontSize: 11, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 8px 0', fontFamily: F, fontWeight: 400 }}>
@@ -41,7 +41,7 @@ export default function TermsPage() {
           Last updated: April 2026
         </p>
 
-        <Section title="What BLUNNIT Is">
+        <Section title="WHAT THE BLUNNIT MIRROR IS">
           <ul style={{ margin: 0, paddingLeft: 20 }}>
             <Li>A self-awareness tool powered by AI.</Li>
             <Li>Not therapy, counseling, medical advice, or a mental health service.</Li>
@@ -89,8 +89,8 @@ export default function TermsPage() {
 
         <Section title="Intellectual Property">
           <ul style={{ margin: 0, paddingLeft: 20 }}>
-            <Li>The Blunnit Mirror, the BLUNNIT Protocol, the mirror system, and all associated branding are the intellectual property of Scott Stern.</Li>
-            <Li>You may not copy, reproduce, or distribute the BLUNNIT Protocol or system.</Li>
+            <Li>The Blunnit Mirror, the Blunnit Protocol, the mirror system, and all associated branding are the intellectual property of Scott Stern.</Li>
+            <Li>You may not copy, reproduce, or distribute the Blunnit Protocol or system.</Li>
           </ul>
         </Section>
 

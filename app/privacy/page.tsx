@@ -31,7 +31,7 @@ export default function PrivacyPage() {
       <div style={{ maxWidth: 620, margin: '0 auto' }}>
 
         <Link href="/" style={{ fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-muted)', textDecoration: 'none', display: 'inline-block', marginBottom: 48 }}>
-          Back to BLUNNIT
+          Back to Mirror
         </Link>
 
         <h1 style={{ fontSize: 11, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 8px 0', fontFamily: F, fontWeight: 400 }}>

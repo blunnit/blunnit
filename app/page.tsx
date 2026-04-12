@@ -318,7 +318,7 @@ export default function Home() {
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, streamedText]);
 
   useEffect(() => {
-    document.title = screen === 'mirror' ? 'BLUNNIT Mirror' : 'BLUNNIT — Pierce The Illusion';
+    document.title = screen === 'mirror' ? 'The Blunnit Mirror' : 'The Blunnit Mirror — Pierce The Illusion';
   }, [screen]);
 
   useEffect(() => {
