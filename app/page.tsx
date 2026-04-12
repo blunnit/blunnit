@@ -19,28 +19,6 @@ const FREE_WEEKLY_LIMIT = 10;
 const DAILY_SOFT_CAP = 15;
 const F = "'Cormorant Garamond', Georgia, serif";
 
-function trackReflectDay(userId: string): void {
-  if (typeof window === 'undefined') return;
-  try {
-    const key = `blunnit_reflect_days_${userId}`;
-    const stored = localStorage.getItem(key);
-    const days: string[] = stored ? JSON.parse(stored) : [];
-    const today = new Date().toISOString().split('T')[0];
-    if (!days.includes(today)) {
-      days.push(today);
-      localStorage.setItem(key, JSON.stringify(days));
-    }
-  } catch {}
-}
-
-function getReflectDays(userId: string): number {
-  if (typeof window === 'undefined') return 0;
-  try {
-    const key = `blunnit_reflect_days_${userId}`;
-    const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored).length : 0;
-  } catch { return 0; }
-}
 
 
 function getDailyReflectCount(): number {
@@ -152,7 +130,12 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (user?.tier === 'paid') setReflectDays(getReflectDays(user.id));
+    if (user?.tier === 'paid') {
+      fetch('/api/reflect-days', { headers: { 'x-user-id': user.id } })
+        .then(r => r.json())
+        .then(d => { if (typeof d.reflect_days_count === 'number') setReflectDays(d.reflect_days_count); })
+        .catch(() => {});
+    }
   }, [user]);
 
   // Keep sitPrefRef in sync
@@ -460,8 +443,10 @@ export default function Home() {
             fetch('/api/presence', { method: 'POST' }).catch(() => {});
             fetch('/api/check-limits', { method: 'POST', headers: { 'x-user-id': user.id } }).then(() => checkLimits());
             if (user.tier === 'paid') {
-              trackReflectDay(user.id);
-              setReflectDays(getReflectDays(user.id));
+              fetch('/api/reflect-days', { method: 'POST', headers: { 'x-user-id': user.id } })
+                .then(r => r.json())
+                .then(d => { if (typeof d.reflect_days_count === 'number') setReflectDays(d.reflect_days_count); })
+                .catch(() => {});
               fetch('/api/extract-themes', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-user-id': user.id },
