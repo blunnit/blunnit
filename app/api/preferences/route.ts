@@ -12,11 +12,15 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ show_daily_prompt: true, show_how_it_works: true });
   }
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('profiles')
     .select('show_daily_prompt, show_how_it_works')
     .eq('id', userId)
     .single();
+
+  if (error) {
+    console.error('[preferences GET] db error:', error.message);
+  }
 
   return NextResponse.json({
     show_daily_prompt: data?.show_daily_prompt ?? true,
@@ -37,6 +41,21 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'no valid fields' }, { status: 400 });
   }
 
-  await supabase.from('profiles').update(updates).eq('id', userId);
+  const { error, count } = await supabase
+    .from('profiles')
+    .update(updates)
+    .eq('id', userId)
+    .select('id', { count: 'exact', head: true });
+
+  if (error) {
+    console.error('[preferences PATCH] update error:', error.message);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  if (count === 0) {
+    console.error('[preferences PATCH] no profile row found for user:', userId);
+    return NextResponse.json({ error: 'profile not found' }, { status: 404 });
+  }
+
   return NextResponse.json({ ok: true });
 }
