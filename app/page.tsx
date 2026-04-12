@@ -731,13 +731,6 @@ export default function Home() {
               </div>
             )}
 
-            {/* Thoroughness guidance */}
-            <div style={{ width: '100%', padding: '16px 18px', background: 'var(--surface)', border: '1px solid var(--border)', marginBottom: 16, textAlign: 'left' }}>
-              <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: 0, fontFamily: F, lineHeight: 1.7, fontStyle: 'italic' }}>
-                Be thorough. The mirror responds with questions that go deeper, so the more honestly and completely you write, the more precise and useful the reflection will be. Short entries get surface-level mirrors.
-              </p>
-            </div>
-
             {/* How it works - collapsible */}
             <div style={{ width: '100%', marginBottom: 32, border: '1px solid var(--border)' }}>
               <button
@@ -751,7 +744,8 @@ export default function Home() {
                 <div style={{ padding: '4px 18px 16px', textAlign: 'left' }}>
                   <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: '0 0 8px 0', fontFamily: F, fontWeight: 300, lineHeight: 1.7 }}>Write what's real. The mirror works best with honesty.</p>
                   <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: '0 0 8px 0', fontFamily: F, fontWeight: 300, lineHeight: 1.7 }}>Choose your level. Gentle holds space. Piercing strips the frame.</p>
-                  <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: 0, fontFamily: F, fontWeight: 300, lineHeight: 1.7 }}>Reflect. The AI mirrors back what you might not be seeing.</p>
+                  <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: '0 0 8px 0', fontFamily: F, fontWeight: 300, lineHeight: 1.7 }}>Reflect. The AI mirrors back what you might not be seeing.</p>
+                  <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: 0, fontFamily: F, fontWeight: 300, lineHeight: 1.7 }}>Be thorough. The more honestly and completely you write, the more precise the reflection. Short entries get surface-level mirrors.</p>
                 </div>
               )}
             </div>
