@@ -696,14 +696,14 @@ export default function Home() {
             <p style={{ fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--text-muted)', margin: '0 0 40px 0', fontFamily: F }}>Pierce The Illusion</p>
             <div style={{ textAlign: 'left', width: '100%', border: '1px solid var(--border)', padding: 24, marginBottom: 24 }}>
               <p style={{ fontSize: 12, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 16px 0', fontFamily: F }}>Before You Begin</p>
-              <p style={{ fontSize: 15, lineHeight: 1.8, color: 'var(--text)', marginBottom: 14, fontWeight: 300, fontFamily: F }}>BLUNNIT is a self-awareness tool powered by AI. It is not therapy, counseling, or a substitute for professional mental health care.</p>
+              <p style={{ fontSize: 15, lineHeight: 1.8, color: 'var(--text)', marginBottom: 14, fontWeight: 300, fontFamily: F }}>The Blunnit Mirror is a self-awareness tool powered by AI. It is not therapy, counseling, or a substitute for professional mental health care.</p>
               <p style={{ fontSize: 15, lineHeight: 1.8, color: 'var(--text)', marginBottom: 14, fontWeight: 300, fontFamily: F }}>The mirror reflects what you write. It may challenge your thinking. It will not diagnose you, prescribe solutions, or replace professional support.</p>
               <p style={{ fontSize: 15, lineHeight: 1.8, color: 'var(--text)', marginBottom: 14, fontWeight: 300, fontFamily: F }}>If you are currently experiencing a mental health crisis, please reach out to a professional. You can call or text 988 (Suicide & Crisis Lifeline) or text HOME to 741741 (Crisis Text Line).</p>
-              <p style={{ fontSize: 15, lineHeight: 1.8, color: 'var(--text-dim)', fontWeight: 300, fontFamily: F }}>By proceeding, you acknowledge that BLUNNIT provides AI-generated reflections for self-awareness purposes only, and that you assume full responsibility for how you use them.</p>
+              <p style={{ fontSize: 15, lineHeight: 1.8, color: 'var(--text-dim)', fontWeight: 300, fontFamily: F }}>By proceeding, you acknowledge that The Blunnit Mirror provides AI-generated reflections for self-awareness purposes only, and that you assume full responsibility for how you use them.</p>
             </div>
             <button onClick={() => { localStorage.setItem('blunnit_accepted', 'true'); setScreen('home'); }} style={{ width: '100%', padding: '18px 0', background: 'var(--btn-bg)', color: 'var(--btn-text)', border: '1px solid var(--btn-bg)', fontSize: 14, letterSpacing: 3, textTransform: 'uppercase', cursor: 'pointer', fontFamily: F, fontWeight: 500 }}>I Understand, Enter</button>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '18px 0 0 0', fontFamily: F, fontWeight: 300, lineHeight: 1.7, textAlign: 'center' }}>
-              By using BLUNNIT you agree to our{' '}
+              By using The Blunnit Mirror you agree to our{' '}
               <a href="/terms" style={{ color: 'var(--text-dim)', textDecoration: 'underline' }}>Terms of Service</a>
               {' '}and{' '}
               <a href="/privacy" style={{ color: 'var(--text-dim)', textDecoration: 'underline' }}>Privacy Policy</a>.
