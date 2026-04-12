@@ -605,10 +605,10 @@ export default function SidePanel({
 
         {/* Manage Account view */}
         {manageView && (
-          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 28, minHeight: 0 }}>
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
 
             {/* Profile section */}
-            <div>
+            <div style={{ marginBottom: 28 }}>
               <p style={sectionLabel}>Profile</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
 
@@ -721,7 +721,7 @@ export default function SidePanel({
             </div>
 
             {/* Preferences section */}
-            <div>
+            <div style={{ marginBottom: 0 }}>
               <p style={sectionLabel}>Preferences</p>
               <div style={{ padding: '12px 14px', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: F, fontWeight: 300 }}>Show Daily Prompt</span>
@@ -740,6 +740,9 @@ export default function SidePanel({
                 </button>
               </div>
             </div>
+
+            {/* Legal + Account pinned to bottom */}
+            <div style={{ marginTop: 'auto', paddingTop: 28, display: 'flex', flexDirection: 'column', gap: 28, paddingBottom: 8 }}>
 
             {/* Legal section */}
             <div>
@@ -789,7 +792,7 @@ export default function SidePanel({
             </div>
 
             {/* Account section */}
-            <div style={{ paddingBottom: 20 }}>
+            <div>
               <p style={sectionLabel}>Account</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
 
@@ -876,6 +879,8 @@ export default function SidePanel({
 
               </div>
             </div>
+
+            </div>{/* end bottom-pinned wrapper */}
 
           </div>
         )}
