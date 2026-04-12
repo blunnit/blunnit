@@ -118,6 +118,10 @@ export default function Home() {
   const [showNameModal, setShowNameModal] = useState(false);
   const [nameInput, setNameInput] = useState('');
   const [isDesktop, setIsDesktop] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    try { return localStorage.getItem('blunnit_sidebar_open') !== 'false'; } catch { return true; }
+  });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const pendingChoiceRef = useRef<string | null>(null);
@@ -295,6 +299,11 @@ export default function Home() {
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
   }, []);
+
+  // Persist sidebar preference
+  useEffect(() => {
+    try { localStorage.setItem('blunnit_sidebar_open', String(sidebarOpen)); } catch {}
+  }, [sidebarOpen]);
 
   // Body scroll lock when mobile panel is open
   useEffect(() => {
@@ -578,7 +587,19 @@ export default function Home() {
         </div>
       )}
 
-      <div style={{ marginLeft: isDesktop && screen !== 'disclaimer' ? 280 : 0 }}>
+      {isDesktop && screen !== 'disclaimer' && !sidebarOpen && (
+        <button
+          onClick={() => setSidebarOpen(true)}
+          title="Open sidebar"
+          style={{ position: 'fixed', top: 16, left: 16, zIndex: 202, background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer', padding: '8px 10px', fontSize: 14, lineHeight: 1, fontFamily: F, transition: 'border-color 0.2s, color 0.2s' }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; e.currentTarget.style.color = 'var(--text)'; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-dim)'; }}
+        >
+          {String.fromCharCode(8594)}
+        </button>
+      )}
+
+      <div style={{ marginLeft: isDesktop && screen !== 'disclaimer' && sidebarOpen ? 280 : 0, transition: isDesktop ? 'margin-left 0.3s ease' : undefined }}>
       <div style={{ position: 'relative', zIndex: 2, maxWidth: isDesktop && screen !== 'disclaimer' ? 800 : 520, margin: '0 auto', padding: isDesktop && screen !== 'disclaimer' ? '0 40px' : '0 28px' }}>
 
         {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
@@ -596,7 +617,7 @@ export default function Home() {
         )}
 
         <SidePanel
-          open={showSidePanel}
+          open={isDesktop && screen !== 'disclaimer' ? sidebarOpen : showSidePanel}
           user={user}
           savedConvos={savedConvos}
           onClose={() => setShowSidePanel(false)}
@@ -614,6 +635,7 @@ export default function Home() {
           onChangeName={handleChangeName}
           isDesktop={isDesktop && screen !== 'disclaimer'}
           onSignIn={() => setShowAuthModal(true)}
+          onToggleSidebar={() => setSidebarOpen(v => !v)}
         />
 
         {/* Name collection modal — shown once after first signup */}
@@ -693,12 +715,14 @@ export default function Home() {
         {screen === 'home' && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100vh', textAlign: 'center', animation: 'fadeIn 0.8s ease', paddingTop: isDesktop ? 28 : 60, paddingBottom: 40 }}>
 
-            {!isDesktop && (
-              <>
-                <img src="/logo.png" alt="" style={{ width: 36, height: 'auto', marginTop: 20, marginBottom: 16 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                <h1 style={{ fontSize: 36, fontWeight: 400, letterSpacing: 8, margin: '0 0 4px 0', fontFamily: F, textTransform: 'uppercase' }}>The Blunnit Mirror</h1>
-                <p style={{ fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--text-muted)', margin: '0 0 40px 0', fontFamily: F }}>Pierce The Illusion</p>
-              </>
+            {(!isDesktop || !sidebarOpen) && (
+              <div style={{ paddingTop: isDesktop ? 60 : 20, paddingBottom: isDesktop ? 40 : 32, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                <svg width={isDesktop ? 80 : 60} height={isDesktop ? 72 : 54} viewBox="0 0 100 90" fill="none" stroke="var(--text-dim)" strokeWidth="1.8" style={{ marginBottom: 28 }}>
+                  <path d="M50,88 C25,72 5,55 5,35 C5,17 17,5 30,5 C38,5 45,10 50,20 C55,10 62,5 70,5 C83,5 95,17 95,35 C95,55 75,72 50,88Z" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <h1 style={{ fontSize: isDesktop ? 48 : 32, fontWeight: 400, letterSpacing: isDesktop ? 10 : 8, margin: '0 0 12px 0', fontFamily: F, textTransform: 'uppercase', textAlign: 'center' }}>The Blunnit Mirror</h1>
+                <p style={{ fontSize: 11, letterSpacing: 5, textTransform: 'uppercase', color: 'var(--text-muted)', margin: 0, fontFamily: F }}>Pierce The Illusion</p>
+              </div>
             )}
 
             {/* Auth-dependent section — hold placeholder until both auth and limits are resolved */}
@@ -959,7 +983,7 @@ export default function Home() {
             <div ref={messagesEndRef} />
 
             {/* Bottom input */}
-            <div style={{ position: 'fixed', bottom: isDesktop ? 0 : keyboardOffset, left: isDesktop ? 280 : 0, right: 0, zIndex: 10, background: 'linear-gradient(transparent, var(--bg) 20%)', padding: `40px ${isDesktop ? 40 : 28}px`, paddingBottom: isDesktop ? 28 : 'max(28px, env(safe-area-inset-bottom))' as any }}>
+            <div style={{ position: 'fixed', bottom: isDesktop ? 0 : keyboardOffset, left: isDesktop && sidebarOpen ? 280 : 0, right: 0, zIndex: 10, background: 'linear-gradient(transparent, var(--bg) 20%)', padding: `40px ${isDesktop ? 40 : 28}px`, paddingBottom: isDesktop ? 28 : 'max(28px, env(safe-area-inset-bottom))' as any }}>
               <div style={{ maxWidth: isDesktop ? 720 : 520, margin: '0 auto', display: 'flex', gap: 8 }}>
                 {!user && anonRemaining <= 0 ? (
                   <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '14px 16px', background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => setShowAuthModal(true)}>

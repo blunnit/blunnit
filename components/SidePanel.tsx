@@ -27,13 +27,14 @@ type Props = {
   onChangeName: (name: string) => Promise<void>;
   isDesktop?: boolean;
   onSignIn?: () => void;
+  onToggleSidebar?: () => void;
 };
 
 export default function SidePanel({
   open, user, savedConvos, onClose, onLoadConvo, onDeleteConvo, onRenameConvo,
   onShowSafety, onLogout, onUpgrade, onNewReflection, onDeleteAccount,
   displayName, showDailyPrompt, onToggleDailyPrompt, onChangeName,
-  isDesktop = false, onSignIn,
+  isDesktop = false, onSignIn, onToggleSidebar,
 }: Props) {
   const [manageView, setManageView] = useState(false);
   const [cancelling, setCancelling] = useState(false);
@@ -240,20 +241,31 @@ export default function SidePanel({
         zIndex: 201,
         background: '#000',
         borderRight: '1px solid var(--border)',
-        ...(isDesktop ? {} : {
-          transform: open ? 'translateX(0)' : 'translateX(-100%)',
-          transition: 'transform 0.3s ease',
-        }),
+        transform: open ? 'translateX(0)' : 'translateX(-100%)',
+        transition: 'transform 0.3s ease',
         display: 'flex', flexDirection: 'column',
         padding: '24px 20px',
       }}>
 
         {/* Logo — desktop only, main view only */}
         {isDesktop && !manageView && (
-          <div style={{ marginBottom: 24, paddingBottom: 20, borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-            <img src="/logo.png" alt="" style={{ width: 22, height: 'auto', marginBottom: 10, display: 'block' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+          <div style={{ marginBottom: 24, paddingBottom: 20, borderBottom: '1px solid var(--border)', flexShrink: 0, position: 'relative' }}>
+            <svg width="28" height="25" viewBox="0 0 100 90" fill="none" stroke="var(--text-dim)" strokeWidth="2" style={{ marginBottom: 10, display: 'block' }}>
+              <path d="M50,88 C25,72 5,55 5,35 C5,17 17,5 30,5 C38,5 45,10 50,20 C55,10 62,5 70,5 C83,5 95,17 95,35 C95,55 75,72 50,88Z" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
             <p style={{ fontSize: 13, fontWeight: 400, letterSpacing: 5, textTransform: 'uppercase', color: 'var(--text)', margin: '0 0 2px 0', fontFamily: F }}>The Blunnit Mirror</p>
             <p style={{ fontSize: 9, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-muted)', margin: 0, fontFamily: F }}>Pierce The Illusion</p>
+            {onToggleSidebar && (
+              <button
+                onClick={onToggleSidebar}
+                title="Collapse sidebar"
+                style={{ position: 'absolute', top: 0, right: 0, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 14, padding: '2px 4px', lineHeight: 1, fontFamily: F, transition: 'color 0.2s' }}
+                onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-dim)'; }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; }}
+              >
+                {String.fromCharCode(8592)}
+              </button>
+            )}
           </div>
         )}
 
