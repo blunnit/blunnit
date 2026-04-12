@@ -114,6 +114,7 @@ export default function Home() {
   const [savedConfirm, setSavedConfirm] = useState(false);
   const [limitsLoaded, setLimitsLoaded] = useState(false);
   const [showDailyPrompt, setShowDailyPrompt] = useState(true);
+  const [showHowItWorksPref, setShowHowItWorksPref] = useState(true);
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [showNameModal, setShowNameModal] = useState(false);
   const [nameInput, setNameInput] = useState('');
@@ -321,6 +322,15 @@ export default function Home() {
     try {
       const stored = localStorage.getItem(`blunnit_show_prompt_${user.id}`);
       setShowDailyPrompt(stored !== 'false');
+    } catch {}
+  }, [user?.id]);
+
+  // Load how it works toggle preference
+  useEffect(() => {
+    if (!user) { setShowHowItWorksPref(true); return; }
+    try {
+      const stored = localStorage.getItem(`blunnit_show_howitworks_${user.id}`);
+      setShowHowItWorksPref(stored !== 'false');
     } catch {}
   }, [user?.id]);
 
@@ -553,6 +563,13 @@ export default function Home() {
     try { localStorage.setItem(`blunnit_show_prompt_${user.id}`, String(newVal)); } catch {}
   };
 
+  const handleToggleHowItWorks = () => {
+    if (!user) return;
+    const newVal = !showHowItWorksPref;
+    setShowHowItWorksPref(newVal);
+    try { localStorage.setItem(`blunnit_show_howitworks_${user.id}`, String(newVal)); } catch {}
+  };
+
   const getLevelInfo = (key: string) => CONFRONTATION_LEVELS.find((l) => l.key === key);
 
   const remaining = getRemaining();
@@ -632,6 +649,8 @@ export default function Home() {
           displayName={displayName}
           showDailyPrompt={showDailyPrompt}
           onToggleDailyPrompt={handleToggleDailyPrompt}
+          showHowItWorksPref={showHowItWorksPref}
+          onToggleHowItWorks={handleToggleHowItWorks}
           onChangeName={handleChangeName}
           isDesktop={isDesktop && screen !== 'disclaimer'}
           onSignIn={() => setShowAuthModal(true)}
@@ -778,7 +797,7 @@ export default function Home() {
             )}
 
             {/* How it works - collapsible */}
-            <div style={{ width: '100%', marginBottom: 32, border: '1px solid var(--border)' }}>
+            {(!user || showHowItWorksPref) && <div style={{ width: '100%', marginBottom: 32, border: '1px solid var(--border)' }}>
               <button
                 onClick={() => setShowHowItWorks(v => !v)}
                 style={{ width: '100%', padding: '12px 18px', background: 'none', border: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', fontFamily: F }}
@@ -795,7 +814,7 @@ export default function Home() {
                   <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: 0, fontFamily: F, fontWeight: 300, lineHeight: 1.7 }}>Be thorough. The more honestly and completely you write, the more precise the reflection. Short entries get surface-level mirrors.</p>
                 </div>
               )}
-            </div>
+            </div>}
 
             {/* Confrontation Dial */}
             <div style={{ width: '100%', marginBottom: 32 }}>

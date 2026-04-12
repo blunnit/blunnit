@@ -24,6 +24,8 @@ type Props = {
   displayName: string | null;
   showDailyPrompt: boolean;
   onToggleDailyPrompt: () => void;
+  showHowItWorksPref: boolean;
+  onToggleHowItWorks: () => void;
   onChangeName: (name: string) => Promise<void>;
   isDesktop?: boolean;
   onSignIn?: () => void;
@@ -33,7 +35,7 @@ type Props = {
 export default function SidePanel({
   open, user, savedConvos, onClose, onLoadConvo, onDeleteConvo, onRenameConvo,
   onShowSafety, onLogout, onUpgrade, onNewReflection, onDeleteAccount,
-  displayName, showDailyPrompt, onToggleDailyPrompt, onChangeName,
+  displayName, showDailyPrompt, onToggleDailyPrompt, showHowItWorksPref, onToggleHowItWorks, onChangeName,
   isDesktop = false, onSignIn, onToggleSidebar,
 }: Props) {
   const [manageView, setManageView] = useState(false);
@@ -767,21 +769,39 @@ export default function SidePanel({
             {/* Preferences section */}
             <div style={{ marginBottom: 0 }}>
               <p style={sectionLabel}>Preferences</p>
-              <div style={{ padding: '12px 14px', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: F, fontWeight: 300 }}>Show Daily Prompt</span>
-                <button
-                  onClick={onToggleDailyPrompt}
-                  style={{
-                    padding: '4px 10px', background: 'none',
-                    border: `1px solid ${showDailyPrompt ? 'var(--border-hover)' : 'var(--border)'}`,
-                    color: showDailyPrompt ? 'var(--text-dim)' : 'var(--text-muted)',
-                    fontSize: 9, letterSpacing: 2, textTransform: 'uppercase',
-                    cursor: 'pointer', fontFamily: F, transition: 'all 0.2s ease',
-                    flexShrink: 0,
-                  }}
-                >
-                  {showDailyPrompt ? 'On' : 'Off'}
-                </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ padding: '12px 14px', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: F, fontWeight: 300 }}>Show Daily Prompt</span>
+                  <button
+                    onClick={onToggleDailyPrompt}
+                    style={{
+                      padding: '4px 10px', background: 'none',
+                      border: `1px solid ${showDailyPrompt ? 'var(--border-hover)' : 'var(--border)'}`,
+                      color: showDailyPrompt ? 'var(--text-dim)' : 'var(--text-muted)',
+                      fontSize: 9, letterSpacing: 2, textTransform: 'uppercase',
+                      cursor: 'pointer', fontFamily: F, transition: 'all 0.2s ease',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {showDailyPrompt ? 'On' : 'Off'}
+                  </button>
+                </div>
+                <div style={{ padding: '12px 14px', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: F, fontWeight: 300 }}>Show How It Works</span>
+                  <button
+                    onClick={onToggleHowItWorks}
+                    style={{
+                      padding: '4px 10px', background: 'none',
+                      border: `1px solid ${showHowItWorksPref ? 'var(--border-hover)' : 'var(--border)'}`,
+                      color: showHowItWorksPref ? 'var(--text-dim)' : 'var(--text-muted)',
+                      fontSize: 9, letterSpacing: 2, textTransform: 'uppercase',
+                      cursor: 'pointer', fontFamily: F, transition: 'all 0.2s ease',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {showHowItWorksPref ? 'On' : 'Off'}
+                  </button>
+                </div>
               </div>
             </div>
 
