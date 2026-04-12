@@ -124,6 +124,7 @@ export default function Home() {
   const userMsgCountRef = useRef(0);
   const titleRegenFiredRef = useRef(false);
   const fingerprintRef = useRef<string>('');
+  const anonIncrementedRef = useRef(false);
   const supabase = createClient();
 
   // Generate fingerprint once on mount, then fetch remaining anon count
@@ -374,6 +375,7 @@ export default function Home() {
       if (anonRemaining <= 0) { setShowAuthModal(true); return; }
     }
     if (user && user.tier === 'free' && freeRemaining <= 0) { setScreen('upgrade'); return; }
+    anonIncrementedRef.current = false;
     setError(null); setIsReflecting(true); setStreamedText('');
     const userMessage: Message = { role: 'user', content: textToUse };
     const updatedMessages = [...messages, userMessage];
@@ -407,7 +409,8 @@ export default function Home() {
           });
           setStreamedText(''); setIsReflecting(false);
           if (convId) saveMessage(convId, 'assistant', assistantText, reflectionLevel);
-          if (!user) {
+          if (!user && !anonIncrementedRef.current) {
+            anonIncrementedRef.current = true;
             fetch('/api/anon-limits', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },

@@ -51,12 +51,13 @@ export async function POST(req: NextRequest) {
 
   if (selectErr) {
     console.error('[anon POST] select error:', selectErr.message);
-    return NextResponse.json({ remaining: 0 });
+    return NextResponse.json({ remaining: LIMIT });
   }
 
+  const oldCount = existing?.count ?? 0;
   let newCount: number;
   if (existing) {
-    newCount = existing.count + 1;
+    newCount = oldCount + 1;
     const { error: updateErr } = await supabase
       .from('anon_usage')
       .update({ count: newCount })
@@ -72,6 +73,6 @@ export async function POST(req: NextRequest) {
   }
 
   const remaining = Math.max(0, LIMIT - newCount);
-  console.log(`[anon POST] fp=...${fp.slice(-6)} date=${today} newCount=${newCount} remaining=${remaining}`);
+  console.log(`[anon POST] fp=...${fp.slice(-6)} date=${today} oldCount=${oldCount} newCount=${newCount} remaining=${remaining}`);
   return NextResponse.json({ remaining });
 }
