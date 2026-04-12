@@ -41,6 +41,7 @@ export default function SidePanel({
   const [cancelDone, setCancelDone] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [manageOpen, setManageOpen] = useState(false);
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
@@ -490,153 +491,178 @@ export default function SidePanel({
             7-Day Protocol
           </a>
 
-          <a
-            href="/privacy"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'block', padding: '11px 0', textAlign: 'center',
-              border: '1px solid var(--border)',
-              color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2,
-              textTransform: 'uppercase', textDecoration: 'none', fontFamily: F,
-              transition: 'border-color 0.2s ease, color 0.2s ease',
-            }}
-            onMouseEnter={e => hoverMuted(e)}
-            onMouseLeave={e => unhoverMuted(e)}
-          >
-            Privacy Policy
-          </a>
-
-          <a
-            href="/terms"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'block', padding: '11px 0', textAlign: 'center',
-              border: '1px solid var(--border)',
-              color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2,
-              textTransform: 'uppercase', textDecoration: 'none', fontFamily: F,
-              transition: 'border-color 0.2s ease, color 0.2s ease',
-            }}
-            onMouseEnter={e => hoverMuted(e)}
-            onMouseLeave={e => unhoverMuted(e)}
-          >
-            Terms of Service
-          </a>
-
+          {/* Manage Account toggle */}
           <button
-            onClick={() => { onClose(); onShowSafety(); }}
+            onClick={() => setManageOpen(v => !v)}
             style={{
-              padding: '11px 0', background: 'none',
+              padding: '11px 14px', background: 'none',
               border: '1px solid var(--border)',
               color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2,
               textTransform: 'uppercase', cursor: 'pointer', fontFamily: F,
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               transition: 'border-color 0.2s ease, color 0.2s ease',
             }}
             onMouseEnter={e => hoverMuted(e)}
             onMouseLeave={e => unhoverMuted(e)}
           >
-            Safety & Disclaimer
+            <span>Manage Account</span>
+            <span style={{ fontSize: 8, letterSpacing: 0 }}>{manageOpen ? '▲' : '▼'}</span>
           </button>
 
-          {isPaid && !cancelDone && (
-            <button
-              onClick={handleCancelSubscription}
-              disabled={cancelling}
-              style={{
-                padding: '11px 0', background: 'none',
-                border: '1px solid #4a2020',
-                color: '#4a2020', fontSize: 10, letterSpacing: 2,
-                textTransform: 'uppercase', cursor: cancelling ? 'default' : 'pointer',
-                fontFamily: F, opacity: cancelling ? 0.5 : 1,
-                transition: 'border-color 0.2s ease, color 0.2s ease',
-              }}
-              onMouseEnter={e => { if (!cancelling) { e.currentTarget.style.borderColor = '#6b3030'; e.currentTarget.style.color = '#6b3030'; } }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = '#4a2020'; e.currentTarget.style.color = '#4a2020'; }}
-            >
-              {cancelling ? 'Cancelling...' : 'Cancel Subscription'}
-            </button>
-          )}
+          {/* Manage Account expanded */}
+          {manageOpen && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
 
-          {cancelDone && (
-            <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', fontFamily: F, margin: '2px 0' }}>
-              Subscription cancelled. Access continues until period end.
-            </p>
-          )}
+              <a
+                href="/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'block', padding: '11px 0', textAlign: 'center',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2,
+                  textTransform: 'uppercase', textDecoration: 'none', fontFamily: F,
+                  transition: 'border-color 0.2s ease, color 0.2s ease',
+                }}
+                onMouseEnter={e => hoverMuted(e)}
+                onMouseLeave={e => unhoverMuted(e)}
+              >
+                Privacy Policy
+              </a>
 
-          <button
-            onClick={onLogout}
-            style={{
-              padding: '11px 0', background: 'none',
-              border: '1px solid var(--border)',
-              color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2,
-              textTransform: 'uppercase', cursor: 'pointer', fontFamily: F,
-              transition: 'border-color 0.2s ease, color 0.2s ease',
-            }}
-            onMouseEnter={e => hoverMuted(e)}
-            onMouseLeave={e => unhoverMuted(e)}
-          >
-            Log Out
-          </button>
+              <a
+                href="/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'block', padding: '11px 0', textAlign: 'center',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2,
+                  textTransform: 'uppercase', textDecoration: 'none', fontFamily: F,
+                  transition: 'border-color 0.2s ease, color 0.2s ease',
+                }}
+                onMouseEnter={e => hoverMuted(e)}
+                onMouseLeave={e => unhoverMuted(e)}
+              >
+                Terms of Service
+              </a>
 
-          {/* Delete Account */}
-          {!confirmDelete ? (
-            <button
-              onClick={() => setConfirmDelete(true)}
-              style={{
-                padding: '11px 0', background: 'none',
-                border: '1px solid #4a2020',
-                color: '#4a2020', fontSize: 10, letterSpacing: 2,
-                textTransform: 'uppercase', cursor: 'pointer', fontFamily: F,
-                transition: 'border-color 0.2s ease, color 0.2s ease',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = '#6b3030'; e.currentTarget.style.color = '#6b3030'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = '#4a2020'; e.currentTarget.style.color = '#4a2020'; }}
-            >
-              Delete Account
-            </button>
-          ) : (
-            <div style={{ border: '1px solid #4a2020', padding: '14px 16px' }}>
-              <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '0 0 4px 0', fontFamily: F, fontWeight: 300, lineHeight: 1.6 }}>
-                Permanently delete your account, all conversations, and all data. This cannot be undone.
-              </p>
-              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              <button
+                onClick={() => { onClose(); onShowSafety(); }}
+                style={{
+                  padding: '11px 0', background: 'none',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2,
+                  textTransform: 'uppercase', cursor: 'pointer', fontFamily: F,
+                  transition: 'border-color 0.2s ease, color 0.2s ease',
+                }}
+                onMouseEnter={e => hoverMuted(e)}
+                onMouseLeave={e => unhoverMuted(e)}
+              >
+                Safety & Disclaimer
+              </button>
+
+              {isPaid && !cancelDone && (
                 <button
-                  onClick={async () => {
-                    setDeleting(true);
-                    await onDeleteAccount();
-                    setDeleting(false);
-                    setConfirmDelete(false);
-                  }}
-                  disabled={deleting}
+                  onClick={handleCancelSubscription}
+                  disabled={cancelling}
                   style={{
-                    flex: 1, padding: '8px 0', background: 'none',
-                    border: '1px solid #4a2020', color: '#6b3030',
-                    fontSize: 10, fontFamily: F, letterSpacing: 1,
-                    textTransform: 'uppercase', cursor: deleting ? 'default' : 'pointer',
-                    opacity: deleting ? 0.5 : 1,
+                    padding: '11px 0', background: 'none',
+                    border: '1px solid #4a2020',
+                    color: '#4a2020', fontSize: 10, letterSpacing: 2,
+                    textTransform: 'uppercase', cursor: cancelling ? 'default' : 'pointer',
+                    fontFamily: F, opacity: cancelling ? 0.5 : 1,
                     transition: 'border-color 0.2s ease, color 0.2s ease',
                   }}
-                  onMouseEnter={e => { if (!deleting) { e.currentTarget.style.borderColor = '#ff6b6b'; e.currentTarget.style.color = '#ff6b6b'; } }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#4a2020'; e.currentTarget.style.color = '#6b3030'; }}
+                  onMouseEnter={e => { if (!cancelling) { e.currentTarget.style.borderColor = '#6b3030'; e.currentTarget.style.color = '#6b3030'; } }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#4a2020'; e.currentTarget.style.color = '#4a2020'; }}
                 >
-                  {deleting ? 'Deleting...' : 'Yes, Delete'}
+                  {cancelling ? 'Cancelling...' : 'Cancel Subscription'}
                 </button>
+              )}
+
+              {cancelDone && (
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', fontFamily: F, margin: '2px 0' }}>
+                  Subscription cancelled. Access continues until period end.
+                </p>
+              )}
+
+              <button
+                onClick={onLogout}
+                style={{
+                  padding: '11px 0', background: 'none',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2,
+                  textTransform: 'uppercase', cursor: 'pointer', fontFamily: F,
+                  transition: 'border-color 0.2s ease, color 0.2s ease',
+                }}
+                onMouseEnter={e => hoverMuted(e)}
+                onMouseLeave={e => unhoverMuted(e)}
+              >
+                Log Out
+              </button>
+
+              {/* Delete Account */}
+              {!confirmDelete ? (
                 <button
-                  onClick={() => setConfirmDelete(false)}
+                  onClick={() => setConfirmDelete(true)}
                   style={{
-                    flex: 1, padding: '8px 0', background: 'none',
-                    border: '1px solid var(--border)', color: 'var(--text-muted)',
-                    fontSize: 10, fontFamily: F, letterSpacing: 1,
-                    textTransform: 'uppercase', cursor: 'pointer',
+                    padding: '11px 0', background: 'none',
+                    border: '1px solid #4a2020',
+                    color: '#4a2020', fontSize: 10, letterSpacing: 2,
+                    textTransform: 'uppercase', cursor: 'pointer', fontFamily: F,
                     transition: 'border-color 0.2s ease, color 0.2s ease',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; e.currentTarget.style.color = 'var(--text-dim)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#6b3030'; e.currentTarget.style.color = '#6b3030'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#4a2020'; e.currentTarget.style.color = '#4a2020'; }}
                 >
-                  Cancel
+                  Delete Account
                 </button>
-              </div>
+              ) : (
+                <div style={{ border: '1px solid #4a2020', padding: '14px 16px' }}>
+                  <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '0 0 4px 0', fontFamily: F, fontWeight: 300, lineHeight: 1.6 }}>
+                    Permanently delete your account, all conversations, and all data. This cannot be undone.
+                  </p>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                    <button
+                      onClick={async () => {
+                        setDeleting(true);
+                        await onDeleteAccount();
+                        setDeleting(false);
+                        setConfirmDelete(false);
+                      }}
+                      disabled={deleting}
+                      style={{
+                        flex: 1, padding: '8px 0', background: 'none',
+                        border: '1px solid #4a2020', color: '#6b3030',
+                        fontSize: 10, fontFamily: F, letterSpacing: 1,
+                        textTransform: 'uppercase', cursor: deleting ? 'default' : 'pointer',
+                        opacity: deleting ? 0.5 : 1,
+                        transition: 'border-color 0.2s ease, color 0.2s ease',
+                      }}
+                      onMouseEnter={e => { if (!deleting) { e.currentTarget.style.borderColor = '#ff6b6b'; e.currentTarget.style.color = '#ff6b6b'; } }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = '#4a2020'; e.currentTarget.style.color = '#6b3030'; }}
+                    >
+                      {deleting ? 'Deleting...' : 'Yes, Delete'}
+                    </button>
+                    <button
+                      onClick={() => setConfirmDelete(false)}
+                      style={{
+                        flex: 1, padding: '8px 0', background: 'none',
+                        border: '1px solid var(--border)', color: 'var(--text-muted)',
+                        fontSize: 10, fontFamily: F, letterSpacing: 1,
+                        textTransform: 'uppercase', cursor: 'pointer',
+                        transition: 'border-color 0.2s ease, color 0.2s ease',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; e.currentTarget.style.color = 'var(--text-dim)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
             </div>
           )}
         </div>
