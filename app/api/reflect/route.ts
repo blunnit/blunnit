@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { SYSTEM_PROMPT_BASE, CONFRONTATION_PROMPTS } from '@/lib/system-prompt';
+import { createServiceClient } from '@/lib/supabase-server';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -41,6 +42,19 @@ export async function POST(req: NextRequest) {
         return '';
       })
       .join('\n');
+
+    // Auto-capture every reflection for training data (fire and forget)
+    const lastUserMsg = [...messages].reverse().find((m: { role: string }) => m.role === 'user');
+    if (lastUserMsg) {
+      const supabase = createServiceClient();
+      supabase.from('training_data').insert({
+        user_input: lastUserMsg.content,
+        ai_response: text,
+        confrontation_level: level,
+      }).then(({ error }) => {
+        if (error) console.error('[training_data] insert error:', error.message);
+      });
+    }
 
     return NextResponse.json({ reflection: text });
   } catch (error: any) {

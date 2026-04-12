@@ -127,7 +127,7 @@ export default function Home() {
     try {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const lang = navigator.language;
-      fingerprintRef.current = btoa(screen.width + 'x' + screen.height + '_' + tz + '_' + lang);
+      fingerprintRef.current = btoa(window.screen.width + 'x' + window.screen.height + '_' + tz + '_' + lang);
     } catch {
       fingerprintRef.current = 'unknown';
     }

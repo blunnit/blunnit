@@ -145,3 +145,21 @@ create table public.anon_usage (
   count integer default 0 not null,
   primary key (fingerprint, date)
 );
+
+-- Training data: auto-captured from every reflection, reviewed by Scott
+create table public.training_data (
+  id uuid default gen_random_uuid() primary key,
+  conversation_id uuid references public.conversations(id) on delete set null,
+  user_input text not null,
+  ai_response text not null,
+  confrontation_level text,
+  rating text check (rating in ('good', 'bad', 'drifted', 'unrated')) default 'unrated',
+  corrected_response text,
+  rule_violated text,
+  notes text,
+  created_at timestamptz default now(),
+  reviewed_at timestamptz
+);
+
+alter table public.training_data enable row level security;
+create policy "Service role full access" on public.training_data for all using (true);
