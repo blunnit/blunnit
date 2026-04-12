@@ -480,7 +480,7 @@ export default function Home() {
     setScreen('home');
   };
 
-  const handleLogout = async () => { await supabase.auth.signOut(); setUser(null); goHome(); };
+  const handleLogout = async () => { await supabase.auth.signOut(); window.location.reload(); };
   const handleDeleteAccount = async () => {
     if (!user) return;
     await fetch('/api/delete-account', { method: 'DELETE', headers: { 'x-user-id': user.id } });
