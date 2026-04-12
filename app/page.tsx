@@ -241,6 +241,16 @@ export default function Home() {
     } catch {}
   }, [user]);
 
+  const loadPreferences = useCallback(async () => {
+    if (!user) return;
+    try {
+      const res = await fetch('/api/preferences', { headers: { 'x-user-id': user.id } });
+      const data = await res.json();
+      if (typeof data.show_daily_prompt === 'boolean') setShowDailyPrompt(data.show_daily_prompt);
+      if (typeof data.show_how_it_works === 'boolean') setShowHowItWorksPref(data.show_how_it_works);
+    } catch {}
+  }, [user]);
+
   const loadThemes = useCallback(async () => {
     if (!user || user.tier !== 'paid') return;
     try {
@@ -316,25 +326,12 @@ export default function Home() {
     return () => { document.body.style.overflow = ''; };
   }, [isDesktop, showSidePanel]);
 
-  // Load daily prompt toggle preference
+  // Reset preferences when user logs out
   useEffect(() => {
-    if (!user) { setShowDailyPrompt(true); return; }
-    try {
-      const stored = localStorage.getItem(`blunnit_show_prompt_${user.id}`);
-      setShowDailyPrompt(stored !== 'false');
-    } catch {}
-  }, [user?.id]);
+    if (!user) { setShowDailyPrompt(true); setShowHowItWorksPref(true); }
+  }, [user]);
 
-  // Load how it works toggle preference
-  useEffect(() => {
-    if (!user) { setShowHowItWorksPref(true); return; }
-    try {
-      const stored = localStorage.getItem(`blunnit_show_howitworks_${user.id}`);
-      setShowHowItWorksPref(stored !== 'false');
-    } catch {}
-  }, [user?.id]);
-
-  useEffect(() => { if (!authLoading && user) { checkLimits(); loadConversations(); loadThemes(); } }, [authLoading, user, checkLimits, loadConversations, loadThemes]);
+  useEffect(() => { if (!authLoading && user) { checkLimits(); loadConversations(); loadThemes(); loadPreferences(); } }, [authLoading, user, checkLimits, loadConversations, loadThemes, loadPreferences]);
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, streamedText]);
 
   useEffect(() => {
@@ -560,14 +557,22 @@ export default function Home() {
     if (!user) return;
     const newVal = !showDailyPrompt;
     setShowDailyPrompt(newVal);
-    try { localStorage.setItem(`blunnit_show_prompt_${user.id}`, String(newVal)); } catch {}
+    fetch('/api/preferences', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-user-id': user.id },
+      body: JSON.stringify({ show_daily_prompt: newVal }),
+    }).catch(() => {});
   };
 
   const handleToggleHowItWorks = () => {
     if (!user) return;
     const newVal = !showHowItWorksPref;
     setShowHowItWorksPref(newVal);
-    try { localStorage.setItem(`blunnit_show_howitworks_${user.id}`, String(newVal)); } catch {}
+    fetch('/api/preferences', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-user-id': user.id },
+      body: JSON.stringify({ show_how_it_works: newVal }),
+    }).catch(() => {});
   };
 
   const getLevelInfo = (key: string) => CONFRONTATION_LEVELS.find((l) => l.key === key);

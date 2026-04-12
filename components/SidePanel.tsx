@@ -206,13 +206,13 @@ export default function SidePanel({
 
   const sectionLabel = {
     fontSize: 9, letterSpacing: 3, textTransform: 'uppercase' as const,
-    color: 'var(--text-muted)', margin: '0 0 10px 0', fontFamily: F,
+    color: 'var(--text-dim)', margin: '0 0 10px 0', fontFamily: F,
   };
 
   const rowBtn = (dimRed = false, disabled = false) => ({
     width: '100%', padding: '11px 14px', background: 'none',
-    border: `1px solid ${dimRed ? '#4a2020' : 'var(--border)'}`,
-    color: dimRed ? '#4a2020' : 'var(--text-muted)',
+    border: `1px solid ${dimRed ? '#4a2020' : 'var(--border-hover)'}`,
+    color: dimRed ? '#4a2020' : 'var(--text-dim)',
     fontSize: 10, letterSpacing: 2, textTransform: 'uppercase' as const,
     cursor: disabled ? 'default' : 'pointer', fontFamily: F,
     transition: 'border-color 0.2s ease, color 0.2s ease',
@@ -631,14 +631,14 @@ export default function SidePanel({
                   onClick={() => { setManageView(true); setNameValue(displayName || ''); }}
                   style={{
                     padding: '11px 14px', background: 'none',
-                    border: '1px solid var(--border)',
-                    color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2,
+                    border: '1px solid var(--border-hover)',
+                    color: 'var(--text-dim)', fontSize: 10, letterSpacing: 2,
                     textTransform: 'uppercase', cursor: 'pointer', fontFamily: F,
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     transition: 'border-color 0.2s ease, color 0.2s ease',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--text-muted)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
                 >
                   <span>Manage Account</span>
                   <span style={{ fontSize: 10 }}>{String.fromCharCode(8250)}</span>
@@ -710,8 +710,8 @@ export default function SidePanel({
                   <button
                     onClick={() => { setChangingPassword(true); setPasswordError(null); setPasswordSuccess(false); }}
                     style={{ ...rowBtn(), textAlign: 'center' }}
-                    onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+                    onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--text-muted)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
                   >
                     Change Password
                   </button>
@@ -817,13 +817,13 @@ export default function SidePanel({
                   href="/privacy"
                   style={{
                     display: 'block', padding: '11px 14px', textAlign: 'center',
-                    border: '1px solid var(--border)',
-                    color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2,
+                    border: '1px solid var(--border-hover)',
+                    color: 'var(--text-dim)', fontSize: 10, letterSpacing: 2,
                     textTransform: 'uppercase', textDecoration: 'none', fontFamily: F,
                     transition: 'border-color 0.2s ease, color 0.2s ease',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--text-muted)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
                 >
                   Privacy Policy
                 </a>
@@ -832,13 +832,13 @@ export default function SidePanel({
                   href="/terms"
                   style={{
                     display: 'block', padding: '11px 14px', textAlign: 'center',
-                    border: '1px solid var(--border)',
-                    color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2,
+                    border: '1px solid var(--border-hover)',
+                    color: 'var(--text-dim)', fontSize: 10, letterSpacing: 2,
                     textTransform: 'uppercase', textDecoration: 'none', fontFamily: F,
                     transition: 'border-color 0.2s ease, color 0.2s ease',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--text-muted)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
                 >
                   Terms of Service
                 </a>
@@ -846,8 +846,8 @@ export default function SidePanel({
                 <button
                   onClick={() => { onClose(); onShowSafety(); }}
                   style={{ ...rowBtn(), textAlign: 'center' }}
-                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--text-muted)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
                 >
                   Safety & Disclaimer
                 </button>
@@ -881,8 +881,8 @@ export default function SidePanel({
                 <button
                   onClick={onLogout}
                   style={{ ...rowBtn(), textAlign: 'center' }}
-                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--text-muted)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
                 >
                   Log Out
                 </button>
