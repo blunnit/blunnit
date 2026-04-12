@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
 
   const count = data?.count || 0;
   const remaining = Math.max(0, ANON_DAILY_LIMIT - count);
+  console.log(`[anon-limits GET] fp=${fp} date=${today} count=${count} remaining=${remaining} allowed=${remaining > 0}`);
   return NextResponse.json({ allowed: remaining > 0, remaining, count, limit: ANON_DAILY_LIMIT });
 }
 
@@ -44,10 +45,12 @@ export async function POST(req: NextRequest) {
       .update({ count: existing.count + 1 })
       .eq('fingerprint', fp)
       .eq('date', today);
+    console.log(`[anon-limits POST] fp=${fp} date=${today} new count=${existing.count + 1}`);
   } else {
     await supabase
       .from('anon_usage')
       .insert({ fingerprint: fp, date: today, count: 1 });
+    console.log(`[anon-limits POST] fp=${fp} date=${today} new count=1 (first use)`);
   }
 
   return NextResponse.json({ ok: true });

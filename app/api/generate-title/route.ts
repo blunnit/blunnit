@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     max_tokens: 15,
     messages: [{
       role: 'user',
-      content: `Generate a 2-4 word topic title for this conversation. Respond with ONLY the title, nothing else. Maximum 4 words.\n\n${combined.slice(0, 600)}`,
+      content: `Summarize this conversation in 2-4 words. Respond with ONLY the title. Maximum 4 words. Examples: 'Career crossroads', 'Fear of judgment', 'Relationship tension', 'Finding purpose'\n\n${combined.slice(0, 600)}`,
     }],
   });
 

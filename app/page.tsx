@@ -45,13 +45,9 @@ function getReflectDays(userId: string): number {
 function getBrowserFingerprint(): string {
   if (typeof window === 'undefined') return 'unknown';
   try {
-    const parts = [
-      screen.width,
-      screen.height,
-      Intl.DateTimeFormat().resolvedOptions().timeZone,
-      navigator.language,
-    ];
-    return btoa(parts.join('|'));
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const lang = navigator.language;
+    return btoa(screen.width + 'x' + screen.height + '_' + tz + '_' + lang);
   } catch { return 'unknown'; }
 }
 
@@ -392,13 +388,15 @@ export default function Home() {
           setStreamedText(''); setIsReflecting(false);
           if (convId) saveMessage(convId, 'assistant', assistantText, reflectionLevel);
           if (!user) {
-            setAnonUsed(prev => prev + 1);
             const fp = getBrowserFingerprint();
             fetch('/api/anon-limits', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ fp }),
-            }).catch(() => {});
+            }).then(() => fetch(`/api/anon-limits?fp=${encodeURIComponent(fp)}`))
+              .then(r => r.json())
+              .then(d => setAnonUsed(d.count || 0))
+              .catch(() => setAnonUsed(prev => prev + 1));
           }
           else {
             fetch('/api/presence', { method: 'POST' }).catch(() => {});
@@ -425,6 +423,8 @@ export default function Home() {
                 body: JSON.stringify({ conversationId: convId, messages: firstThreeUserMsgs }),
               }).then(r => r.json()).then(d => {
                 if (d.title) setSavedConvos(prev => prev.map(c => c.id === convId ? { ...c, title: d.title } : c));
+                // Refresh full list so side panel reflects the new title
+                fetch('/api/conversations', { headers: { 'x-user-id': user.id } }).then(r => r.json()).then(d2 => setSavedConvos(d2.conversations || []));
               });
             }
           }
@@ -842,8 +842,16 @@ export default function Home() {
             {/* Bottom input */}
             <div style={{ position: 'fixed', bottom: keyboardOffset, left: 0, right: 0, zIndex: 10, background: 'linear-gradient(transparent, var(--bg) 20%)', padding: '40px 28px 28px' }}>
               <div style={{ maxWidth: 520, margin: '0 auto', display: 'flex', gap: 8 }}>
-                <textarea value={journalText} onChange={(e) => setJournalText(e.target.value)} onKeyDown={handleKeyDown} placeholder="Go deeper..." rows={2} disabled={isReflecting} style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 15, lineHeight: 1.6, padding: '14px 16px', fontFamily: F, fontWeight: 300, resize: 'none', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.3s', opacity: isReflecting ? 0.5 : 1 }} onFocus={(e) => { e.target.style.borderColor = 'var(--border-hover)'; }} onBlur={(e) => { e.target.style.borderColor = 'var(--border)'; }} />
-                <button onClick={handleReflect} disabled={!journalText.trim() || isReflecting} style={{ padding: '14px 20px', background: journalText.trim() && !isReflecting ? 'var(--btn-bg)' : 'var(--surface)', color: journalText.trim() && !isReflecting ? 'var(--btn-text)' : 'var(--text-muted)', border: `1px solid ${journalText.trim() && !isReflecting ? 'var(--btn-bg)' : 'var(--border)'}`, fontSize: 13, letterSpacing: 2, textTransform: 'uppercase', cursor: journalText.trim() && !isReflecting ? 'pointer' : 'default', fontFamily: F, fontWeight: 500, transition: 'all 0.3s ease', whiteSpace: 'nowrap' }}>↵</button>
+                {!user && anonUsed >= ANON_LIMIT ? (
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '14px 16px', background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => setShowAuthModal(true)}>
+                    <span style={{ fontSize: 13, color: 'var(--text-muted)', fontFamily: F, fontWeight: 300 }}>Create an account to continue reflecting</span>
+                  </div>
+                ) : (
+                  <>
+                    <textarea value={journalText} onChange={(e) => setJournalText(e.target.value)} onKeyDown={handleKeyDown} placeholder="Go deeper..." rows={2} disabled={isReflecting} style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 15, lineHeight: 1.6, padding: '14px 16px', fontFamily: F, fontWeight: 300, resize: 'none', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.3s', opacity: isReflecting ? 0.5 : 1 }} onFocus={(e) => { e.target.style.borderColor = 'var(--border-hover)'; }} onBlur={(e) => { e.target.style.borderColor = 'var(--border)'; }} />
+                    <button onClick={handleReflect} disabled={!journalText.trim() || isReflecting} style={{ padding: '14px 20px', background: journalText.trim() && !isReflecting ? 'var(--btn-bg)' : 'var(--surface)', color: journalText.trim() && !isReflecting ? 'var(--btn-text)' : 'var(--text-muted)', border: `1px solid ${journalText.trim() && !isReflecting ? 'var(--btn-bg)' : 'var(--border)'}`, fontSize: 13, letterSpacing: 2, textTransform: 'uppercase', cursor: journalText.trim() && !isReflecting ? 'pointer' : 'default', fontFamily: F, fontWeight: 500, transition: 'all 0.3s ease', whiteSpace: 'nowrap' }}>↵</button>
+                  </>
+                )}
               </div>
             </div>
           </div>
