@@ -816,6 +816,11 @@ export default function Home() {
               )}
             </div>}
 
+            {/* Divider when How It Works is hidden */}
+            {user && !showHowItWorksPref && (
+              <div style={{ width: '100%', borderTop: '1px solid var(--border)', marginBottom: 32 }} />
+            )}
+
             {/* Confrontation Dial */}
             <div style={{ width: '100%', marginBottom: 32 }}>
               <p style={{ fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 14px 0', fontFamily: F }}>How real do you want it?</p>
