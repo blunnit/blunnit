@@ -717,9 +717,7 @@ export default function Home() {
 
             {(!isDesktop || !sidebarOpen) && (
               <div style={{ paddingTop: isDesktop ? 60 : 20, paddingBottom: isDesktop ? 40 : 32, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                <svg width={isDesktop ? 80 : 60} height={isDesktop ? 72 : 54} viewBox="0 0 100 90" fill="none" stroke="var(--text-dim)" strokeWidth="1.8" style={{ marginBottom: 28 }}>
-                  <path d="M50,88 C25,72 5,55 5,35 C5,17 17,5 30,5 C38,5 45,10 50,20 C55,10 62,5 70,5 C83,5 95,17 95,35 C95,55 75,72 50,88Z" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+                <img src="/logo.png" alt="" style={{ width: isDesktop ? 64 : 48, height: 'auto', marginBottom: 28 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                 <h1 style={{ fontSize: isDesktop ? 48 : 32, fontWeight: 400, letterSpacing: isDesktop ? 10 : 8, margin: '0 0 12px 0', fontFamily: F, textTransform: 'uppercase', textAlign: 'center' }}>The Blunnit Mirror</h1>
                 <p style={{ fontSize: 11, letterSpacing: 5, textTransform: 'uppercase', color: 'var(--text-muted)', margin: 0, fontFamily: F }}>Pierce The Illusion</p>
               </div>

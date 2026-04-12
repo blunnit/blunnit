@@ -250,9 +250,7 @@ export default function SidePanel({
         {/* Logo — desktop only, main view only */}
         {isDesktop && !manageView && (
           <div style={{ marginBottom: 24, paddingBottom: 20, borderBottom: '1px solid var(--border)', flexShrink: 0, position: 'relative' }}>
-            <svg width="28" height="25" viewBox="0 0 100 90" fill="none" stroke="var(--text-dim)" strokeWidth="2" style={{ marginBottom: 10, display: 'block' }}>
-              <path d="M50,88 C25,72 5,55 5,35 C5,17 17,5 30,5 C38,5 45,10 50,20 C55,10 62,5 70,5 C83,5 95,17 95,35 C95,55 75,72 50,88Z" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <img src="/logo.png" alt="" style={{ width: 22, height: 'auto', marginBottom: 10, display: 'block' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
             <p style={{ fontSize: 13, fontWeight: 400, letterSpacing: 5, textTransform: 'uppercase', color: 'var(--text)', margin: '0 0 2px 0', fontFamily: F }}>The Blunnit Mirror</p>
             <p style={{ fontSize: 9, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-muted)', margin: 0, fontFamily: F }}>Pierce The Illusion</p>
             {onToggleSidebar && (
