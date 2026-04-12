@@ -19,6 +19,7 @@ type Props = {
   onLogout: () => void;
   onUpgrade: () => void;
   onNewReflection: () => void;
+  onDeleteAccount: () => void;
 };
 
 const hoverMuted = (e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
@@ -34,10 +35,12 @@ const unhoverMuted = (e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>
 
 export default function SidePanel({
   open, user, savedConvos, onClose, onLoadConvo, onDeleteConvo, onRenameConvo,
-  onShowSafety, onLogout, onUpgrade, onNewReflection,
+  onShowSafety, onLogout, onUpgrade, onNewReflection, onDeleteAccount,
 }: Props) {
   const [cancelling, setCancelling] = useState(false);
   const [cancelDone, setCancelDone] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
@@ -487,6 +490,40 @@ export default function SidePanel({
             7-Day Protocol
           </a>
 
+          <a
+            href="/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'block', padding: '11px 0', textAlign: 'center',
+              border: '1px solid var(--border)',
+              color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2,
+              textTransform: 'uppercase', textDecoration: 'none', fontFamily: F,
+              transition: 'border-color 0.2s ease, color 0.2s ease',
+            }}
+            onMouseEnter={e => hoverMuted(e)}
+            onMouseLeave={e => unhoverMuted(e)}
+          >
+            Privacy Policy
+          </a>
+
+          <a
+            href="/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'block', padding: '11px 0', textAlign: 'center',
+              border: '1px solid var(--border)',
+              color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2,
+              textTransform: 'uppercase', textDecoration: 'none', fontFamily: F,
+              transition: 'border-color 0.2s ease, color 0.2s ease',
+            }}
+            onMouseEnter={e => hoverMuted(e)}
+            onMouseLeave={e => unhoverMuted(e)}
+          >
+            Terms of Service
+          </a>
+
           <button
             onClick={() => { onClose(); onShowSafety(); }}
             style={{
@@ -541,6 +578,67 @@ export default function SidePanel({
           >
             Log Out
           </button>
+
+          {/* Delete Account */}
+          {!confirmDelete ? (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              style={{
+                padding: '11px 0', background: 'none',
+                border: '1px solid #4a2020',
+                color: '#4a2020', fontSize: 10, letterSpacing: 2,
+                textTransform: 'uppercase', cursor: 'pointer', fontFamily: F,
+                transition: 'border-color 0.2s ease, color 0.2s ease',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#6b3030'; e.currentTarget.style.color = '#6b3030'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = '#4a2020'; e.currentTarget.style.color = '#4a2020'; }}
+            >
+              Delete Account
+            </button>
+          ) : (
+            <div style={{ border: '1px solid #4a2020', padding: '14px 16px' }}>
+              <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '0 0 4px 0', fontFamily: F, fontWeight: 300, lineHeight: 1.6 }}>
+                Permanently delete your account, all conversations, and all data. This cannot be undone.
+              </p>
+              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                <button
+                  onClick={async () => {
+                    setDeleting(true);
+                    await onDeleteAccount();
+                    setDeleting(false);
+                    setConfirmDelete(false);
+                  }}
+                  disabled={deleting}
+                  style={{
+                    flex: 1, padding: '8px 0', background: 'none',
+                    border: '1px solid #4a2020', color: '#6b3030',
+                    fontSize: 10, fontFamily: F, letterSpacing: 1,
+                    textTransform: 'uppercase', cursor: deleting ? 'default' : 'pointer',
+                    opacity: deleting ? 0.5 : 1,
+                    transition: 'border-color 0.2s ease, color 0.2s ease',
+                  }}
+                  onMouseEnter={e => { if (!deleting) { e.currentTarget.style.borderColor = '#ff6b6b'; e.currentTarget.style.color = '#ff6b6b'; } }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#4a2020'; e.currentTarget.style.color = '#6b3030'; }}
+                >
+                  {deleting ? 'Deleting...' : 'Yes, Delete'}
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  style={{
+                    flex: 1, padding: '8px 0', background: 'none',
+                    border: '1px solid var(--border)', color: 'var(--text-muted)',
+                    fontSize: 10, fontFamily: F, letterSpacing: 1,
+                    textTransform: 'uppercase', cursor: 'pointer',
+                    transition: 'border-color 0.2s ease, color 0.2s ease',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; e.currentTarget.style.color = 'var(--text-dim)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </>

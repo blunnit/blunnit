@@ -13,6 +13,7 @@ export default function AuthModal({ onClose }: Props) {
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,6 +21,7 @@ export default function AuthModal({ onClose }: Props) {
 
   const handleSubmit = async () => {
     if (!email || !password) return;
+    if (mode === 'signup' && !ageConfirmed) return;
     if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
     setLoading(true);
     setError(null);
@@ -41,6 +43,8 @@ export default function AuthModal({ onClose }: Props) {
     }
   };
 
+  const canSubmit = !loading && !!email && !!password && (mode === 'login' || ageConfirmed);
+
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 28, fontFamily: F }}>
       <div style={{ maxWidth: 400, width: '100%', background: '#000', border: '1px solid #1a1a1a', padding: 32 }}>
@@ -61,12 +65,30 @@ export default function AuthModal({ onClose }: Props) {
 
         {error && <p style={{ fontSize: 14, color: '#ff6b6b', marginBottom: 16, fontFamily: F }}>{error}</p>}
 
-        <button onClick={handleSubmit} disabled={loading || !email || !password}
-          style={{ width: '100%', padding: '16px 0', background: '#e8e4df', color: '#000', border: 'none', fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', cursor: loading ? 'default' : 'pointer', fontWeight: 500, opacity: loading ? 0.6 : 1, fontFamily: F }}>
+        {/* Age gate — signup only */}
+        {mode === 'signup' && (
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 20, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={ageConfirmed}
+              onChange={(e) => setAgeConfirmed(e.target.checked)}
+              style={{ marginTop: 3, flexShrink: 0, accentColor: '#e8e4df', width: 14, height: 14 }}
+            />
+            <span style={{ fontSize: 13, color: '#7a756f', fontFamily: F, lineHeight: 1.6 }}>
+              I confirm I am 18 years or older and I agree to the{' '}
+              <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: '#a09a94', textDecoration: 'underline' }}>Terms of Service</a>
+              {' '}and{' '}
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: '#a09a94', textDecoration: 'underline' }}>Privacy Policy</a>.
+            </span>
+          </label>
+        )}
+
+        <button onClick={handleSubmit} disabled={!canSubmit}
+          style={{ width: '100%', padding: '16px 0', background: canSubmit ? '#e8e4df' : '#1a1a1a', color: canSubmit ? '#000' : '#555', border: 'none', fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', cursor: canSubmit ? 'pointer' : 'default', fontWeight: 500, fontFamily: F, transition: 'background 0.2s, color 0.2s' }}>
           {loading ? '...' : mode === 'signup' ? 'Create Account' : 'Log In'}
         </button>
 
-        <button onClick={() => { setMode(mode === 'signup' ? 'login' : 'signup'); setError(null); }}
+        <button onClick={() => { setMode(mode === 'signup' ? 'login' : 'signup'); setError(null); setAgeConfirmed(false); }}
           style={{ background: 'none', border: 'none', color: '#7a756f', cursor: 'pointer', fontSize: 14, padding: '16px 0 0 0', width: '100%', textAlign: 'center', fontFamily: F }}>
           {mode === 'signup' ? 'Already have an account? Log in' : "Don't have an account? Sign up"}
         </button>

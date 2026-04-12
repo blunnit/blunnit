@@ -447,6 +447,13 @@ export default function Home() {
   };
 
   const handleLogout = async () => { await supabase.auth.signOut(); setUser(null); goHome(); };
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+    await fetch('/api/delete-account', { method: 'DELETE', headers: { 'x-user-id': user.id } });
+    await supabase.auth.signOut();
+    setUser(null);
+    goHome();
+  };
   const handleDeleteConvo = (id: string) => {
     setSavedConvos(prev => prev.filter(c => c.id !== id));
     if (conversationId === id) { setConversationId(null); goHome(); }
@@ -528,6 +535,7 @@ export default function Home() {
           onLogout={handleLogout}
           onUpgrade={() => setScreen('upgrade')}
           onNewReflection={() => { setShowSidePanel(false); goHome(); }}
+          onDeleteAccount={handleDeleteAccount}
         />
 
         {/* Safety Modal */}
@@ -547,6 +555,10 @@ export default function Home() {
               <p style={{ fontSize: 14, lineHeight: 2, color: 'var(--text)', marginBottom: 20, fontWeight: 300, fontFamily: F }}>Emergency Services: 911</p>
               <p style={{ fontSize: 14, lineHeight: 1.8, color: 'var(--text)', marginBottom: 16, fontWeight: 300, fontFamily: F }}>If at any point during use you experience negative psychological effects, stop using the tool and seek professional help.</p>
               <p style={{ fontSize: 14, lineHeight: 1.8, color: 'var(--text-dim)', fontWeight: 300, fontFamily: F }}>By using BLUNNIT, you acknowledge that this tool provides AI-generated reflections for self-awareness purposes only. BLUNNIT, its creator, and its affiliates are not liable for decisions made based on the tool's output.</p>
+              <p style={{ fontSize: 13, lineHeight: 1.8, color: 'var(--text-muted)', fontWeight: 300, fontFamily: F, marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+                Your reflections help the mirror improve. Conversation data is used in anonymized form to refine AI quality. See our{' '}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-dim)', textDecoration: 'underline' }}>Privacy Policy</a> for details.
+              </p>
             </div>
           </div>
         )}
@@ -565,6 +577,12 @@ export default function Home() {
               <p style={{ fontSize: 15, lineHeight: 1.8, color: 'var(--text-dim)', fontWeight: 300, fontFamily: F }}>By proceeding, you acknowledge that BLUNNIT provides AI-generated reflections for self-awareness purposes only, and that you assume full responsibility for how you use them.</p>
             </div>
             <button onClick={() => { localStorage.setItem('blunnit_accepted', 'true'); setScreen('home'); }} style={{ width: '100%', padding: '18px 0', background: 'var(--btn-bg)', color: 'var(--btn-text)', border: '1px solid var(--btn-bg)', fontSize: 14, letterSpacing: 3, textTransform: 'uppercase', cursor: 'pointer', fontFamily: F, fontWeight: 500 }}>I Understand, Enter</button>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '18px 0 0 0', fontFamily: F, fontWeight: 300, lineHeight: 1.7, textAlign: 'center' }}>
+              By using BLUNNIT you agree to our{' '}
+              <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-dim)', textDecoration: 'underline' }}>Terms of Service</a>
+              {' '}and{' '}
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-dim)', textDecoration: 'underline' }}>Privacy Policy</a>.
+            </p>
           </div>
         )}
 
