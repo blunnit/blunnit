@@ -50,7 +50,7 @@ export default function TermsPage() {
         </Section>
 
         <Section title="Eligibility">
-          <P>You must be 18 years or older to use BLUNNIT. By creating an account you confirm you are 18 or older.</P>
+          <P>You must be 18 years or older to use The Blunnit Mirror. By creating an account you confirm you are 18 or older.</P>
         </Section>
 
         <Section title="AI Disclosure">
@@ -81,7 +81,7 @@ export default function TermsPage() {
         <Section title="Your Content">
           <ul style={{ margin: 0, paddingLeft: 20 }}>
             <Li>You own what you write.</Li>
-            <Li>By using BLUNNIT, you grant us a license to use anonymized conversation data to improve AI quality.</Li>
+            <Li>By using The Blunnit Mirror, you grant us a license to use anonymized conversation data to improve AI quality.</Li>
             <Li>Personal identifiers are removed before any data is used for improvement.</Li>
             <Li>We never publish or share your personal reflections.</Li>
           </ul>
@@ -89,14 +89,14 @@ export default function TermsPage() {
 
         <Section title="Intellectual Property">
           <ul style={{ margin: 0, paddingLeft: 20 }}>
-            <Li>BLUNNIT, the BLUNNIT Protocol, the mirror system, and all associated branding are the intellectual property of Scott Stern.</Li>
+            <Li>The Blunnit Mirror, the BLUNNIT Protocol, the mirror system, and all associated branding are the intellectual property of Scott Stern.</Li>
             <Li>You may not copy, reproduce, or distribute the BLUNNIT Protocol or system.</Li>
           </ul>
         </Section>
 
         <Section title="Limitation of Liability">
           <ul style={{ margin: 0, paddingLeft: 20 }}>
-            <Li>BLUNNIT is provided as-is.</Li>
+            <Li>The Blunnit Mirror is provided as-is.</Li>
             <Li>We are not liable for emotional distress, decisions made, relationships affected, or any outcomes resulting from use of the mirror.</Li>
             <Li>Use at your own discretion and responsibility.</Li>
           </ul>
