@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase-server';
 
-const LIMIT = 3;
+const LIMIT = 5;
 
 // GET ?fp=XXX → { remaining: number }
 export async function GET(req: NextRequest) {

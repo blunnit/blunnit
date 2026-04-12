@@ -9,7 +9,7 @@ const anthropic = new Anthropic({
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, confrontation, userThemes } = await req.json();
+    const { messages, confrontation, userThemes, tier } = await req.json();
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json({ error: 'Messages required' }, { status: 400 });
@@ -17,6 +17,10 @@ export async function POST(req: NextRequest) {
 
     const level = confrontation || 'clear';
     let systemPrompt = SYSTEM_PROMPT_BASE + (CONFRONTATION_PROMPTS[level] || CONFRONTATION_PROMPTS.clear);
+
+    if (tier !== 'paid') {
+      systemPrompt += '\n\nDo not append any engagement signal tags ([SIT], [CHOICE], [MIRROR]) to your response. This user does not have access to those features.';
+    }
 
     if (Array.isArray(userThemes) && userThemes.length > 0) {
       const themeList = userThemes

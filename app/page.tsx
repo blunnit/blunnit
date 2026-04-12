@@ -14,7 +14,7 @@ type Message = { role: 'user' | 'assistant'; content: string; level?: string; si
 type UserState = { id: string; email: string; tier: string } | null;
 type SavedConvo = { id: string; title: string; updated_at: string; confrontation_level: string };
 
-const ANON_DAILY_LIMIT = 3;
+const ANON_DAILY_LIMIT = 5;
 const FREE_WEEKLY_LIMIT = 10;
 const DAILY_SOFT_CAP = 15;
 const F = "'Cormorant Garamond', Georgia, serif";
@@ -387,11 +387,12 @@ export default function Home() {
     userMsgCountRef.current += 1;
     const currentMsgCount = userMsgCountRef.current;
     try {
-      const response = await fetch('/api/reflect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: updatedMessages.map((m) => ({ role: m.role, content: m.content })), confrontation: reflectionLevel, userThemes }) });
+      const response = await fetch('/api/reflect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: updatedMessages.map((m) => ({ role: m.role, content: m.content })), confrontation: reflectionLevel, userThemes, tier: user ? user.tier : 'anonymous' }) });
       if (!response.ok) { const errData = await response.json().catch(() => ({})); throw new Error(errData?.error || `Error: ${response.status}`); }
       const data = await response.json();
       const rawAssistantText = data.reflection || 'The mirror is silent. Try again.';
-      const { cleanText: assistantText, signal } = parseSignal(rawAssistantText);
+      const { cleanText: assistantText, signal: parsedSignal } = parseSignal(rawAssistantText);
+      const signal = user?.tier === 'paid' ? parsedSignal : null;
       let i = 0;
       const typeWriter = () => {
         if (i < assistantText.length) { setStreamedText(assistantText.slice(0, i + 1)); i++; setTimeout(typeWriter, 18 + Math.random() * 12); }
