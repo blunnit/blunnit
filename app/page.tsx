@@ -880,27 +880,7 @@ export default function Home() {
 
             {/* Header */}
             <div style={{ marginBottom: 32, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                <button onClick={goHome} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: 13, fontFamily: F, letterSpacing: 3, textTransform: 'uppercase', padding: 0, transition: 'color 0.2s ease' }} onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; }}>← Home</button>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
-                  {CONFRONTATION_LEVELS.map((level) => (
-                    <button key={level.key} onClick={() => setConfrontation(level.key)} title={`${level.label}: ${level.desc}`} style={{ background: confrontation === level.key ? 'var(--surface)' : 'transparent', border: `1px solid ${confrontation === level.key ? 'var(--border-hover)' : 'transparent'}`, color: confrontation === level.key ? 'var(--text)' : 'var(--text-muted)', cursor: 'pointer', padding: '6px 8px', fontSize: 14, transition: 'all 0.3s ease', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <ConfrontationIcon level={level.key} size={18} />
-                      {confrontation === level.key && <span style={{ fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', fontFamily: F }}>{level.label}</span>}
-                    </button>
-                  ))}
-                  <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 4px' }} />
-                  <button onClick={goHome} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, transition: 'color 0.2s ease' }} onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-dim)'; }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; }}>New</button>
-                  {user && (
-                    <>
-                      <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 4px' }} />
-                      <button onClick={handleManualSave} style={{ background: 'none', border: 'none', cursor: 'pointer', color: savedConfirm ? 'var(--accent)' : 'var(--text-muted)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, transition: 'color 0.2s ease' }} onMouseEnter={e => { if (!savedConfirm) e.currentTarget.style.color = 'var(--text-dim)'; }} onMouseLeave={e => { if (!savedConfirm) e.currentTarget.style.color = 'var(--text-muted)'; }}>
-                        {savedConfirm ? 'Saved' : 'Save'}
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
+              <button onClick={goHome} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: 13, fontFamily: F, letterSpacing: 3, textTransform: 'uppercase', padding: 0, transition: 'color 0.2s ease' }} onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; }}>← Home</button>
             </div>
 
             {/* Remaining in mirror */}
@@ -1009,17 +989,35 @@ export default function Home() {
 
             {/* Bottom input */}
             <div style={{ position: 'fixed', bottom: isDesktop ? 0 : keyboardOffset, left: isDesktop && sidebarOpen ? 280 : 0, right: 0, zIndex: 10, background: 'linear-gradient(transparent, var(--bg) 20%)', padding: `40px ${isDesktop ? 40 : 28}px`, paddingBottom: isDesktop ? 28 : 'max(28px, env(safe-area-inset-bottom))' as any }}>
-              <div style={{ maxWidth: isDesktop ? 720 : 520, margin: '0 auto', display: 'flex', gap: 8 }}>
-                {!user && anonRemaining <= 0 ? (
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '14px 16px', background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => setShowAuthModal(true)}>
-                    <span style={{ fontSize: 13, color: 'var(--text-muted)', fontFamily: F, fontWeight: 300 }}>Create an account to continue reflecting</span>
+              <div style={{ maxWidth: isDesktop ? 720 : 520, margin: '0 auto' }}>
+
+                {/* Controls row: confrontation dial + New */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <div style={{ display: 'flex', gap: 2 }}>
+                    {CONFRONTATION_LEVELS.map((level) => (
+                      <button key={level.key} onClick={() => setConfrontation(level.key)} title={`${level.label}: ${level.desc}`} style={{ background: confrontation === level.key ? 'var(--surface)' : 'transparent', border: `1px solid ${confrontation === level.key ? 'var(--border-hover)' : 'transparent'}`, color: confrontation === level.key ? 'var(--text)' : 'var(--text-muted)', cursor: 'pointer', padding: '5px 8px', fontSize: 13, transition: 'all 0.2s ease', display: 'flex', alignItems: 'center', gap: 4, fontFamily: F }}>
+                        <ConfrontationIcon level={level.key} size={15} />
+                        {confrontation === level.key && <span style={{ fontSize: 10, letterSpacing: 1, textTransform: 'uppercase' }}>{level.label}</span>}
+                      </button>
+                    ))}
                   </div>
-                ) : (
-                  <>
-                    <textarea value={journalText} onChange={(e) => setJournalText(e.target.value)} onKeyDown={handleKeyDown} placeholder="Go deeper..." rows={isDesktop ? 3 : 2} disabled={isReflecting} style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 15, lineHeight: 1.6, padding: '14px 16px', fontFamily: F, fontWeight: 300, resize: 'none', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.3s', opacity: isReflecting ? 0.5 : 1 }} onFocus={(e) => { e.target.style.borderColor = 'var(--border-hover)'; if (!isDesktop) { setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 300); } }} onBlur={(e) => { e.target.style.borderColor = 'var(--border)'; }} />
-                    <button onClick={handleReflect} disabled={!journalText.trim() || isReflecting} style={{ padding: '14px 20px', background: journalText.trim() && !isReflecting ? 'var(--btn-bg)' : 'var(--surface)', color: journalText.trim() && !isReflecting ? 'var(--btn-text)' : 'var(--text-muted)', border: `1px solid ${journalText.trim() && !isReflecting ? 'var(--btn-bg)' : 'var(--border)'}`, fontSize: 13, letterSpacing: 2, textTransform: 'uppercase', cursor: journalText.trim() && !isReflecting ? 'pointer' : 'default', fontFamily: F, fontWeight: 500, transition: 'all 0.3s ease', whiteSpace: 'nowrap' }}>↵</button>
-                  </>
-                )}
+                  <button onClick={goHome} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, padding: '5px 0', transition: 'color 0.2s ease' }} onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-dim)'; }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; }}>New</button>
+                </div>
+
+                {/* Input row */}
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {!user && anonRemaining <= 0 ? (
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '14px 16px', background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => setShowAuthModal(true)}>
+                      <span style={{ fontSize: 13, color: 'var(--text-muted)', fontFamily: F, fontWeight: 300 }}>Create an account to continue reflecting</span>
+                    </div>
+                  ) : (
+                    <>
+                      <textarea value={journalText} onChange={(e) => setJournalText(e.target.value)} onKeyDown={handleKeyDown} placeholder="Go deeper..." rows={isDesktop ? 3 : 2} disabled={isReflecting} style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 15, lineHeight: 1.6, padding: '14px 16px', fontFamily: F, fontWeight: 300, resize: 'none', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.3s', opacity: isReflecting ? 0.5 : 1 }} onFocus={(e) => { e.target.style.borderColor = 'var(--border-hover)'; if (!isDesktop) { setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 300); } }} onBlur={(e) => { e.target.style.borderColor = 'var(--border)'; }} />
+                      <button onClick={handleReflect} disabled={!journalText.trim() || isReflecting} style={{ padding: '14px 20px', background: journalText.trim() && !isReflecting ? 'var(--btn-bg)' : 'var(--surface)', color: journalText.trim() && !isReflecting ? 'var(--btn-text)' : 'var(--text-muted)', border: `1px solid ${journalText.trim() && !isReflecting ? 'var(--btn-bg)' : 'var(--border)'}`, fontSize: 13, letterSpacing: 2, textTransform: 'uppercase', cursor: journalText.trim() && !isReflecting ? 'pointer' : 'default', fontFamily: F, fontWeight: 500, transition: 'all 0.3s ease', whiteSpace: 'nowrap' }}>↵</button>
+                    </>
+                  )}
+                </div>
+
               </div>
             </div>
           </div>
