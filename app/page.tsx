@@ -991,17 +991,14 @@ export default function Home() {
             <div style={{ position: 'fixed', bottom: isDesktop ? 0 : keyboardOffset, left: isDesktop && sidebarOpen ? 280 : 0, right: 0, zIndex: 10, background: 'linear-gradient(transparent, var(--bg) 20%)', padding: `40px ${isDesktop ? 40 : 28}px`, paddingBottom: isDesktop ? 28 : 'max(28px, env(safe-area-inset-bottom))' as any }}>
               <div style={{ maxWidth: isDesktop ? 720 : 520, margin: '0 auto' }}>
 
-                {/* Controls row: confrontation dial + New */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <div style={{ display: 'flex', gap: 2 }}>
-                    {CONFRONTATION_LEVELS.map((level) => (
-                      <button key={level.key} onClick={() => setConfrontation(level.key)} title={`${level.label}: ${level.desc}`} style={{ background: confrontation === level.key ? 'var(--surface)' : 'transparent', border: `1px solid ${confrontation === level.key ? 'var(--border-hover)' : 'transparent'}`, color: confrontation === level.key ? 'var(--text)' : 'var(--text-muted)', cursor: 'pointer', padding: '5px 8px', fontSize: 13, transition: 'all 0.2s ease', display: 'flex', alignItems: 'center', gap: 4, fontFamily: F }}>
-                        <ConfrontationIcon level={level.key} size={15} />
-                        {confrontation === level.key && <span style={{ fontSize: 10, letterSpacing: 1, textTransform: 'uppercase' }}>{level.label}</span>}
-                      </button>
-                    ))}
-                  </div>
-                  <button onClick={goHome} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, padding: '5px 0', transition: 'color 0.2s ease' }} onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-dim)'; }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; }}>New</button>
+                {/* Controls row: confrontation dial */}
+                <div style={{ display: 'flex', gap: 2, marginBottom: 8 }}>
+                  {CONFRONTATION_LEVELS.map((level) => (
+                    <button key={level.key} onClick={() => setConfrontation(level.key)} title={`${level.label}: ${level.desc}`} style={{ background: confrontation === level.key ? 'var(--surface)' : 'transparent', border: `1px solid ${confrontation === level.key ? 'var(--border-hover)' : 'transparent'}`, color: confrontation === level.key ? 'var(--text)' : 'var(--text-muted)', cursor: 'pointer', padding: '5px 8px', fontSize: 13, transition: 'all 0.2s ease', display: 'flex', alignItems: 'center', gap: 4, fontFamily: F }}>
+                      <ConfrontationIcon level={level.key} size={15} />
+                      {confrontation === level.key && <span style={{ fontSize: 10, letterSpacing: 1, textTransform: 'uppercase' }}>{level.label}</span>}
+                    </button>
+                  ))}
                 </div>
 
                 {/* Input row */}
