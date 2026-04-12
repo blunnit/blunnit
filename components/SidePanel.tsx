@@ -25,12 +25,15 @@ type Props = {
   showDailyPrompt: boolean;
   onToggleDailyPrompt: () => void;
   onChangeName: (name: string) => Promise<void>;
+  isDesktop?: boolean;
+  onSignIn?: () => void;
 };
 
 export default function SidePanel({
   open, user, savedConvos, onClose, onLoadConvo, onDeleteConvo, onRenameConvo,
   onShowSafety, onLogout, onUpgrade, onNewReflection, onDeleteAccount,
   displayName, showDailyPrompt, onToggleDailyPrompt, onChangeName,
+  isDesktop = false, onSignIn,
 }: Props) {
   const [manageView, setManageView] = useState(false);
   const [cancelling, setCancelling] = useState(false);
@@ -216,60 +219,91 @@ export default function SidePanel({
 
   return (
     <>
-      {/* Overlay */}
-      <div
-        onClick={onClose}
-        style={{
-          position: 'fixed', inset: 0, zIndex: 200,
-          background: 'rgba(0,0,0,0.6)',
-          opacity: open ? 1 : 0,
-          pointerEvents: open ? 'auto' : 'none',
-          transition: 'opacity 0.3s ease',
-        }}
-      />
+      {/* Overlay — mobile only */}
+      {!isDesktop && (
+        <div
+          onClick={onClose}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 200,
+            background: 'rgba(0,0,0,0.6)',
+            opacity: open ? 1 : 0,
+            pointerEvents: open ? 'auto' : 'none',
+            transition: 'opacity 0.3s ease',
+          }}
+        />
+      )}
 
       {/* Panel */}
       <div style={{
         position: 'fixed', top: 0, left: 0, bottom: 0,
-        width: panelWidth, zIndex: 201,
-        background: '#000', borderRight: isMobile ? 'none' : '1px solid var(--border)',
-        transform: open ? 'translateX(0)' : 'translateX(-100%)',
-        transition: 'transform 0.3s ease',
+        width: isDesktop ? 280 : panelWidth,
+        zIndex: 201,
+        background: '#000',
+        borderRight: '1px solid var(--border)',
+        ...(isDesktop ? {} : {
+          transform: open ? 'translateX(0)' : 'translateX(-100%)',
+          transition: 'transform 0.3s ease',
+        }),
         display: 'flex', flexDirection: 'column',
         padding: '24px 20px',
       }}>
 
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28, flexShrink: 0 }}>
-          {manageView ? (
-            <button
-              onClick={() => { setManageView(false); setEditingName(false); setChangingPassword(false); setPasswordError(null); setPasswordSuccess(false); }}
-              style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, padding: 0, transition: 'color 0.2s ease' }}
-              onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; }}
-              onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; }}
-            >
-              {String.fromCharCode(8592)} Account
-            </button>
-          ) : (
-            <span style={{ fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-dim)', fontFamily: F }}>
-              Account
-            </span>
-          )}
-          <button
-            onClick={onClose}
-            style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 20, fontFamily: F, lineHeight: 1, padding: 0, transition: 'color 0.2s ease' }}
-            onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; }}
-            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; }}
-          >
-            x
-          </button>
-        </div>
+        {/* Logo — desktop only, main view only */}
+        {isDesktop && !manageView && (
+          <div style={{ marginBottom: 24, paddingBottom: 20, borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+            <img src="/logo.png" alt="" style={{ width: 22, height: 'auto', marginBottom: 10, display: 'block' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            <p style={{ fontSize: 13, fontWeight: 400, letterSpacing: 5, textTransform: 'uppercase', color: 'var(--text)', margin: '0 0 2px 0', fontFamily: F }}>The Blunnit Mirror</p>
+            <p style={{ fontSize: 9, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-muted)', margin: 0, fontFamily: F }}>Pierce The Illusion</p>
+          </div>
+        )}
+
+        {/* Header — always on mobile, only in manage view on desktop */}
+        {(!isDesktop || manageView) && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28, flexShrink: 0 }}>
+            {manageView ? (
+              <button
+                onClick={() => { setManageView(false); setEditingName(false); setChangingPassword(false); setPasswordError(null); setPasswordSuccess(false); }}
+                style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, padding: 0, transition: 'color 0.2s ease' }}
+                onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; }}
+              >
+                {String.fromCharCode(8592)} Account
+              </button>
+            ) : (
+              <span style={{ fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-dim)', fontFamily: F }}>
+                Account
+              </span>
+            )}
+            {!isDesktop && (
+              <button
+                onClick={onClose}
+                style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 20, fontFamily: F, lineHeight: 1, padding: 0, transition: 'color 0.2s ease' }}
+                onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; }}
+              >
+                x
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Main view */}
         {!manageView && (
           <>
             {/* Scrollable body */}
             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+              {!user && isDesktop && (
+                <div style={{ marginBottom: 20 }}>
+                  <button
+                    onClick={onSignIn}
+                    style={{ width: '100%', padding: '12px 0', background: 'none', border: '1px solid var(--border-hover)', color: 'var(--text)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', cursor: 'pointer', fontFamily: F, transition: 'border-color 0.2s ease' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--text-muted)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
+                  >
+                    Sign In / Sign Up
+                  </button>
+                </div>
+              )}
               {user && (
                 <>
                   {/* Account info */}
@@ -582,22 +616,24 @@ export default function SidePanel({
                 7-Day Protocol
               </a>
 
-              <button
-                onClick={() => { setManageView(true); setNameValue(displayName || ''); }}
-                style={{
-                  padding: '11px 14px', background: 'none',
-                  border: '1px solid var(--border)',
-                  color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2,
-                  textTransform: 'uppercase', cursor: 'pointer', fontFamily: F,
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  transition: 'border-color 0.2s ease, color 0.2s ease',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
-                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
-              >
-                <span>Manage Account</span>
-                <span style={{ fontSize: 10 }}>{String.fromCharCode(8250)}</span>
-              </button>
+              {user && (
+                <button
+                  onClick={() => { setManageView(true); setNameValue(displayName || ''); }}
+                  style={{
+                    padding: '11px 14px', background: 'none',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2,
+                    textTransform: 'uppercase', cursor: 'pointer', fontFamily: F,
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    transition: 'border-color 0.2s ease, color 0.2s ease',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+                >
+                  <span>Manage Account</span>
+                  <span style={{ fontSize: 10 }}>{String.fromCharCode(8250)}</span>
+                </button>
+              )}
 
             </div>
           </>

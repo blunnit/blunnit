@@ -117,6 +117,7 @@ export default function Home() {
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [showNameModal, setShowNameModal] = useState(false);
   const [nameInput, setNameInput] = useState('');
+  const [isDesktop, setIsDesktop] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const pendingChoiceRef = useRef<string | null>(null);
@@ -286,6 +287,24 @@ export default function Home() {
 
   // Reset limitsLoaded when user identity changes
   useEffect(() => { setLimitsLoaded(false); }, [user?.id]);
+
+  // Desktop detection
+  useEffect(() => {
+    const check = () => setIsDesktop(window.innerWidth >= 900);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  // Body scroll lock when mobile panel is open
+  useEffect(() => {
+    if (!isDesktop && showSidePanel) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isDesktop, showSidePanel]);
 
   // Load daily prompt toggle preference
   useEffect(() => {
@@ -538,7 +557,7 @@ export default function Home() {
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 1, opacity: 0.03, background: `url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")` }} />
 
       {/* Fixed auth bar - hidden on disclaimer screen */}
-      {screen !== 'disclaimer' && (
+      {screen !== 'disclaimer' && !isDesktop && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 10, padding: '10px 28px', background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
@@ -559,7 +578,8 @@ export default function Home() {
         </div>
       )}
 
-      <div style={{ position: 'relative', zIndex: 2, maxWidth: 520, margin: '0 auto', padding: '0 28px' }}>
+      <div style={{ marginLeft: isDesktop && screen !== 'disclaimer' ? 280 : 0 }}>
+      <div style={{ position: 'relative', zIndex: 2, maxWidth: isDesktop && screen !== 'disclaimer' ? 800 : 520, margin: '0 auto', padding: isDesktop && screen !== 'disclaimer' ? '0 40px' : '0 28px' }}>
 
         {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
 
@@ -592,6 +612,8 @@ export default function Home() {
           showDailyPrompt={showDailyPrompt}
           onToggleDailyPrompt={handleToggleDailyPrompt}
           onChangeName={handleChangeName}
+          isDesktop={isDesktop && screen !== 'disclaimer'}
+          onSignIn={() => setShowAuthModal(true)}
         />
 
         {/* Name collection modal — shown once after first signup */}
@@ -669,11 +691,15 @@ export default function Home() {
 
         {/* HOME */}
         {screen === 'home' && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100vh', textAlign: 'center', animation: 'fadeIn 0.8s ease', paddingTop: 60, paddingBottom: 40 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100vh', textAlign: 'center', animation: 'fadeIn 0.8s ease', paddingTop: isDesktop ? 28 : 60, paddingBottom: 40 }}>
 
-            <img src="/logo.png" alt="" style={{ width: 36, height: 'auto', marginTop: 20, marginBottom: 16 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-            <h1 style={{ fontSize: 36, fontWeight: 400, letterSpacing: 8, margin: '0 0 4px 0', fontFamily: F, textTransform: 'uppercase' }}>The Blunnit Mirror</h1>
-            <p style={{ fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--text-muted)', margin: '0 0 40px 0', fontFamily: F }}>Pierce The Illusion</p>
+            {!isDesktop && (
+              <>
+                <img src="/logo.png" alt="" style={{ width: 36, height: 'auto', marginTop: 20, marginBottom: 16 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                <h1 style={{ fontSize: 36, fontWeight: 400, letterSpacing: 8, margin: '0 0 4px 0', fontFamily: F, textTransform: 'uppercase' }}>The Blunnit Mirror</h1>
+                <p style={{ fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--text-muted)', margin: '0 0 40px 0', fontFamily: F }}>Pierce The Illusion</p>
+              </>
+            )}
 
             {/* Auth-dependent section — hold placeholder until both auth and limits are resolved */}
             {(authLoading || (!!user && !limitsLoaded)) ? (
@@ -801,7 +827,7 @@ export default function Home() {
 
         {/* MIRROR */}
         {screen === 'mirror' && (
-          <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', paddingTop: 72, paddingBottom: 140, animation: 'fadeIn 0.6s ease' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', paddingTop: isDesktop ? 28 : 72, paddingBottom: 140, animation: 'fadeIn 0.6s ease' }}>
 
             {/* Header */}
             <div style={{ marginBottom: 32, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
@@ -933,15 +959,15 @@ export default function Home() {
             <div ref={messagesEndRef} />
 
             {/* Bottom input */}
-            <div style={{ position: 'fixed', bottom: keyboardOffset, left: 0, right: 0, zIndex: 10, background: 'linear-gradient(transparent, var(--bg) 20%)', padding: '40px 28px 28px' }}>
-              <div style={{ maxWidth: 520, margin: '0 auto', display: 'flex', gap: 8 }}>
+            <div style={{ position: 'fixed', bottom: isDesktop ? 0 : keyboardOffset, left: isDesktop ? 280 : 0, right: 0, zIndex: 10, background: 'linear-gradient(transparent, var(--bg) 20%)', padding: `40px ${isDesktop ? 40 : 28}px`, paddingBottom: isDesktop ? 28 : 'max(28px, env(safe-area-inset-bottom))' as any }}>
+              <div style={{ maxWidth: isDesktop ? 720 : 520, margin: '0 auto', display: 'flex', gap: 8 }}>
                 {!user && anonRemaining <= 0 ? (
                   <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '14px 16px', background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => setShowAuthModal(true)}>
                     <span style={{ fontSize: 13, color: 'var(--text-muted)', fontFamily: F, fontWeight: 300 }}>Create an account to continue reflecting</span>
                   </div>
                 ) : (
                   <>
-                    <textarea value={journalText} onChange={(e) => setJournalText(e.target.value)} onKeyDown={handleKeyDown} placeholder="Go deeper..." rows={2} disabled={isReflecting} style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 15, lineHeight: 1.6, padding: '14px 16px', fontFamily: F, fontWeight: 300, resize: 'none', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.3s', opacity: isReflecting ? 0.5 : 1 }} onFocus={(e) => { e.target.style.borderColor = 'var(--border-hover)'; }} onBlur={(e) => { e.target.style.borderColor = 'var(--border)'; }} />
+                    <textarea value={journalText} onChange={(e) => setJournalText(e.target.value)} onKeyDown={handleKeyDown} placeholder="Go deeper..." rows={isDesktop ? 3 : 2} disabled={isReflecting} style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 15, lineHeight: 1.6, padding: '14px 16px', fontFamily: F, fontWeight: 300, resize: 'none', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.3s', opacity: isReflecting ? 0.5 : 1 }} onFocus={(e) => { e.target.style.borderColor = 'var(--border-hover)'; if (!isDesktop) { setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 300); } }} onBlur={(e) => { e.target.style.borderColor = 'var(--border)'; }} />
                     <button onClick={handleReflect} disabled={!journalText.trim() || isReflecting} style={{ padding: '14px 20px', background: journalText.trim() && !isReflecting ? 'var(--btn-bg)' : 'var(--surface)', color: journalText.trim() && !isReflecting ? 'var(--btn-text)' : 'var(--text-muted)', border: `1px solid ${journalText.trim() && !isReflecting ? 'var(--btn-bg)' : 'var(--border)'}`, fontSize: 13, letterSpacing: 2, textTransform: 'uppercase', cursor: journalText.trim() && !isReflecting ? 'pointer' : 'default', fontFamily: F, fontWeight: 500, transition: 'all 0.3s ease', whiteSpace: 'nowrap' }}>↵</button>
                   </>
                 )}
@@ -949,6 +975,7 @@ export default function Home() {
             </div>
           </div>
         )}
+      </div>
       </div>
     </div>
   );
