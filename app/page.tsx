@@ -745,6 +745,7 @@ export default function Home() {
                   <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: '0 0 8px 0', fontFamily: F, fontWeight: 300, lineHeight: 1.7 }}>Write what's real. The mirror works best with honesty.</p>
                   <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: '0 0 8px 0', fontFamily: F, fontWeight: 300, lineHeight: 1.7 }}>Choose your level. Gentle holds space. Piercing strips the frame.</p>
                   <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: '0 0 8px 0', fontFamily: F, fontWeight: 300, lineHeight: 1.7 }}>Reflect. The AI mirrors back what you might not be seeing.</p>
+                  <div style={{ borderTop: '1px solid var(--border)', margin: '10px 0' }} />
                   <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: 0, fontFamily: F, fontWeight: 300, lineHeight: 1.7 }}>Be thorough. The more honestly and completely you write, the more precise the reflection. Short entries get surface-level mirrors.</p>
                 </div>
               )}
