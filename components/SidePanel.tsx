@@ -211,7 +211,7 @@ export default function SidePanel({
 
   const rowBtn = (dimRed = false, disabled = false) => ({
     width: '100%', padding: '11px 14px', background: 'none',
-    border: `1px solid ${dimRed ? '#8b3a3a' : 'rgba(212, 207, 200, 0.25)'}`,
+    border: `1px solid ${dimRed ? '#4a2020' : 'rgba(212, 207, 200, 0.25)'}`,
     color: dimRed ? '#8b3a3a' : 'var(--accent)',
     fontSize: 10, letterSpacing: 2, textTransform: 'uppercase' as const,
     cursor: disabled ? 'default' : 'pointer', fontFamily: F,
@@ -865,8 +865,8 @@ export default function SidePanel({
                     onClick={handleCancelSubscription}
                     disabled={cancelling}
                     style={{ ...rowBtn(true, cancelling), textAlign: 'center' }}
-                    onMouseEnter={e => { if (!cancelling) { e.currentTarget.style.borderColor = '#a54545'; e.currentTarget.style.color = '#a54545'; } }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#8b3a3a'; e.currentTarget.style.color = '#8b3a3a'; }}
+                    onMouseEnter={e => { if (!cancelling) { e.currentTarget.style.borderColor = '#5a2828'; e.currentTarget.style.color = '#a54545'; } }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#4a2020'; e.currentTarget.style.color = '#8b3a3a'; }}
                   >
                     {cancelling ? 'Cancelling...' : 'Cancel Subscription'}
                   </button>
@@ -891,13 +891,13 @@ export default function SidePanel({
                   <button
                     onClick={() => setConfirmDelete(true)}
                     style={{ ...rowBtn(true), textAlign: 'center' }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#a54545'; e.currentTarget.style.color = '#a54545'; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#8b3a3a'; e.currentTarget.style.color = '#8b3a3a'; }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#5a2828'; e.currentTarget.style.color = '#a54545'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#4a2020'; e.currentTarget.style.color = '#8b3a3a'; }}
                   >
                     Delete Account
                   </button>
                 ) : (
-                  <div style={{ border: '1px solid #8b3a3a', padding: '14px 16px' }}>
+                  <div style={{ border: '1px solid #4a2020', padding: '14px 16px' }}>
                     <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '0 0 4px 0', fontFamily: F, fontWeight: 300, lineHeight: 1.6 }}>
                       Permanently delete your account, all conversations, and all data. This cannot be undone.
                     </p>
@@ -912,14 +912,14 @@ export default function SidePanel({
                         disabled={deleting}
                         style={{
                           flex: 1, padding: '8px 0', background: 'none',
-                          border: '1px solid #8b3a3a', color: '#8b3a3a',
+                          border: '1px solid #4a2020', color: '#8b3a3a',
                           fontSize: 10, fontFamily: F, letterSpacing: 1,
                           textTransform: 'uppercase', cursor: deleting ? 'default' : 'pointer',
                           opacity: deleting ? 0.5 : 1,
                           transition: 'border-color 0.2s ease, color 0.2s ease',
                         }}
-                        onMouseEnter={e => { if (!deleting) { e.currentTarget.style.borderColor = '#a54545'; e.currentTarget.style.color = '#a54545'; } }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = '#8b3a3a'; e.currentTarget.style.color = '#8b3a3a'; }}
+                        onMouseEnter={e => { if (!deleting) { e.currentTarget.style.borderColor = '#5a2828'; e.currentTarget.style.color = '#a54545'; } }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = '#4a2020'; e.currentTarget.style.color = '#8b3a3a'; }}
                       >
                         {deleting ? 'Deleting...' : 'Yes, Delete'}
                       </button>
