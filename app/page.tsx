@@ -136,7 +136,11 @@ export default function Home() {
     const fp = getBrowserFingerprint();
     fetch(`/api/anon-limits?fp=${encodeURIComponent(fp)}`)
       .then(r => r.json())
-      .then(d => setAnonUsed(d.count || 0))
+      .then(d => {
+        setAnonUsed(d.count || 0);
+        // Pre-populate remaining so the UI shows the right count immediately
+        if (!d.allowed) setAnonUsed(ANON_LIMIT);
+      })
       .catch(() => {});
   }, []);
 
@@ -309,7 +313,7 @@ export default function Home() {
   const getOrCreateConversation = async (firstMsgText?: string): Promise<string | null> => {
     if (!user) return null;
     if (conversationId) return conversationId;
-    const title = (firstMsgText || journalText).slice(0, 40).trim() || 'Untitled reflection';
+    const title = (firstMsgText || journalText).slice(0, 30).trim() || 'Untitled reflection';
     const res = await fetch('/api/conversations', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-user-id': user.id }, body: JSON.stringify({ action: 'create', confrontation, title }) });
     const data = await res.json();
     if (data.conversation?.id) {
@@ -341,7 +345,18 @@ export default function Home() {
     pendingChoiceRef.current = null;
     const textToUse = choiceText ?? journalText;
     if (!textToUse.trim() || isReflecting) return;
-    if (!user && anonUsed >= ANON_LIMIT) { setShowAuthModal(true); return; }
+    if (!user) {
+      // Server-side check: always authoritative, persists across incognito / refresh
+      try {
+        const fp = getBrowserFingerprint();
+        const limitRes = await fetch(`/api/anon-limits?fp=${encodeURIComponent(fp)}`);
+        const limitData = await limitRes.json();
+        if (!limitData.allowed) { setShowAuthModal(true); return; }
+      } catch {
+        // Server unreachable: fall back to in-memory count
+        if (anonUsed >= ANON_LIMIT) { setShowAuthModal(true); return; }
+      }
+    }
     if (user && user.tier === 'free' && freeRemaining <= 0) { setScreen('upgrade'); return; }
     setError(null); setIsReflecting(true); setStreamedText('');
     const userMessage: Message = { role: 'user', content: textToUse };
@@ -564,42 +579,44 @@ export default function Home() {
             <h1 style={{ fontSize: 36, fontWeight: 400, letterSpacing: 8, margin: '0 0 4px 0', fontFamily: F, textTransform: 'uppercase' }}>The Blunnit Mirror</h1>
             <p style={{ fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--text-muted)', margin: '0 0 40px 0', fontFamily: F }}>Pierce The Illusion</p>
 
-            {/* Tier status */}
-            {!authLoading && tier !== 'paid' && (
-              <div style={{ width: '100%', padding: '14px 18px', background: 'var(--surface)', border: '1px solid var(--border)', marginBottom: 24, textAlign: 'left' }}>
-                {tier === 'anonymous' ? (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-                    <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: 0, fontFamily: F, lineHeight: 1.6 }}>
-                      {remaining > 0 ? `${remaining} reflection${remaining !== 1 ? 's' : ''} remaining today. Go deep.` : 'You have used your guest reflections for today.'}
-                    </p>
-                    <button onClick={() => setShowAuthModal(true)} style={{ background: 'none', border: '1px solid var(--border-hover)', color: 'var(--text)', padding: '8px 14px', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', cursor: 'pointer', fontFamily: F, whiteSpace: 'nowrap' }}>Sign Up</button>
-                  </div>
-                ) : (
-                  <div>
-                    <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: 0, fontFamily: F, lineHeight: 1.6 }}>
-                      {remaining > 0 ? `${remaining} reflection${remaining !== 1 ? 's' : ''} remaining this week. Go deep.` : 'You have used your reflections for this week.'}
-                    </p>
-                    {remaining <= 3 && (
-                      <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-                        <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0, fontFamily: F, lineHeight: 1.6 }}>This is a solo-built product. Unlimited free access isn't sustainable, but full access is here if you want it.</p>
-                        <button onClick={() => setScreen('upgrade')} style={{ background: 'none', border: '1px solid var(--border-hover)', color: 'var(--text)', padding: '8px 14px', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', cursor: 'pointer', fontFamily: F, whiteSpace: 'nowrap' }}>Full Access</button>
+            {/* Auth-dependent section — placeholder reserves height during load to prevent layout shift */}
+            {authLoading ? (
+              <div style={{ width: '100%', minHeight: 58, marginBottom: 24 }} />
+            ) : (
+              <div style={{ width: '100%', animation: 'fadeIn 0.3s ease' }}>
+                {tier !== 'paid' && (
+                  <div style={{ width: '100%', padding: '14px 18px', background: 'var(--surface)', border: '1px solid var(--border)', marginBottom: 24, textAlign: 'left' }}>
+                    {tier === 'anonymous' ? (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                        <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: 0, fontFamily: F, lineHeight: 1.6 }}>
+                          {remaining > 0 ? `${remaining} reflection${remaining !== 1 ? 's' : ''} remaining today. Go deep.` : 'You have used your guest reflections for today.'}
+                        </p>
+                        <button onClick={() => setShowAuthModal(true)} style={{ background: 'none', border: '1px solid var(--border-hover)', color: 'var(--text)', padding: '8px 14px', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', cursor: 'pointer', fontFamily: F, whiteSpace: 'nowrap' }}>Sign Up</button>
+                      </div>
+                    ) : (
+                      <div>
+                        <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: 0, fontFamily: F, lineHeight: 1.6 }}>
+                          {remaining > 0 ? `${remaining} reflection${remaining !== 1 ? 's' : ''} remaining this week. Go deep.` : 'You have used your reflections for this week.'}
+                        </p>
+                        {remaining <= 3 && (
+                          <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                            <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0, fontFamily: F, lineHeight: 1.6 }}>This is a solo-built product. Unlimited free access isn't sustainable, but full access is here if you want it.</p>
+                            <button onClick={() => setScreen('upgrade')} style={{ background: 'none', border: '1px solid var(--border-hover)', color: 'var(--text)', padding: '8px 14px', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', cursor: 'pointer', fontFamily: F, whiteSpace: 'nowrap' }}>Full Access</button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
                 )}
+                {user && user.tier !== 'paid' && (
+                  <button onClick={() => setScreen('upgrade')} style={{ width: '100%', padding: '14px 0', background: 'none', border: '1px solid var(--border)', color: 'var(--text-dim)', fontSize: 12, letterSpacing: 3, textTransform: 'uppercase', cursor: 'pointer', fontFamily: F, marginBottom: 24 }}>Unlock Full Access</button>
+                )}
+                {user?.tier === 'paid' && reflectDays > 0 && (
+                  <p style={{ fontSize: 13, color: 'var(--text-muted)', fontFamily: F, fontWeight: 300, margin: '0 0 8px 0' }}>
+                    {reflectDays === 1 ? 'You have reflected for 1 day.' : `You have reflected for ${reflectDays} days.`}
+                  </p>
+                )}
               </div>
-            )}
-
-            {/* Full Access */}
-            {!authLoading && user && user.tier !== 'paid' && (
-              <button onClick={() => setScreen('upgrade')} style={{ width: '100%', padding: '14px 0', background: 'none', border: '1px solid var(--border)', color: 'var(--text-dim)', fontSize: 12, letterSpacing: 3, textTransform: 'uppercase', cursor: 'pointer', fontFamily: F, marginBottom: 24 }}>Unlock Full Access</button>
-            )}
-
-            {/* Reflect days for paid users */}
-            {!authLoading && user?.tier === 'paid' && reflectDays > 0 && (
-              <p style={{ fontSize: 13, color: 'var(--text-muted)', fontFamily: F, fontWeight: 300, margin: '0 0 8px 0' }}>
-                {reflectDays === 1 ? 'You have reflected for 1 day.' : `You have reflected for ${reflectDays} days.`}
-              </p>
             )}
 
             {/* Presence count */}
@@ -612,10 +629,7 @@ export default function Home() {
             {/* Daily Prompt */}
             <div style={{ borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', padding: '28px 0', margin: '0 0 32px 0', width: '100%' }}>
               <p style={{ fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 16px 0', fontFamily: F }}>Today's Prompt</p>
-              <p style={{ fontSize: 20, lineHeight: 1.6, fontStyle: 'italic', color: 'var(--accent)', margin: '0 0 12px 0', fontWeight: 300, fontFamily: F }}>"{dailyPrompt}"</p>
-              <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '0 0 14px 0', fontFamily: F, fontWeight: 300, fontStyle: 'italic' }}>
-                This prompt is for today's version of you. Tomorrow's will be different.
-              </p>
+              <p style={{ fontSize: 20, lineHeight: 1.6, fontStyle: 'italic', color: 'var(--accent)', margin: '0 0 16px 0', fontWeight: 300, fontFamily: F }}>"{dailyPrompt}"</p>
               <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: 0, fontFamily: F, fontWeight: 300, lineHeight: 1.6 }}>Use this, or bring something of your own. The mirror works best when you bring what's deeply true, not the polished version.</p>
             </div>
 

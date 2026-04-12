@@ -3,10 +3,10 @@ import { createServiceClient } from '@/lib/supabase-server';
 
 const ANON_DAILY_LIMIT = 3;
 
-// GET: check usage count for a fingerprint today
+// GET: check usage for a fingerprint today — returns { allowed, remaining, count }
 export async function GET(req: NextRequest) {
-  const fp = req.nextUrl.searchParams.get('fp');
-  if (!fp) return NextResponse.json({ count: 0 });
+  const fp = req.nextUrl.searchParams.get('fp') || req.nextUrl.searchParams.get('fingerprint');
+  if (!fp) return NextResponse.json({ allowed: true, remaining: ANON_DAILY_LIMIT, count: 0 });
 
   const supabase = createServiceClient();
   const today = new Date().toISOString().split('T')[0];
@@ -18,7 +18,9 @@ export async function GET(req: NextRequest) {
     .eq('date', today)
     .maybeSingle();
 
-  return NextResponse.json({ count: data?.count || 0, limit: ANON_DAILY_LIMIT });
+  const count = data?.count || 0;
+  const remaining = Math.max(0, ANON_DAILY_LIMIT - count);
+  return NextResponse.json({ allowed: remaining > 0, remaining, count, limit: ANON_DAILY_LIMIT });
 }
 
 // POST: increment usage count for a fingerprint today

@@ -3,18 +3,19 @@
 function Feather({ size }: { size: number }) {
   return (
     <svg viewBox="0 0 20 20" width={size} height={size} fill="none" aria-hidden="true" style={{ display: 'block' }}>
-      {/* Outer vane: rounded at top, narrows toward quill */}
-      <path
-        d="M10 2 C5 3, 3 7, 5 12 C6.5 15, 8.5 16.5, 10 16.5 C11.5 16.5, 13.5 15, 15 12 C17 7, 15 3, 10 2Z"
-        stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"
-      />
-      {/* Spine + quill tip pointing down */}
-      <line x1="10" y1="2" x2="10" y2="19" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
-      {/* Barbs */}
-      <line x1="10" y1="6" x2="7" y2="8" stroke="currentColor" strokeWidth="0.7" strokeLinecap="round" />
-      <line x1="10" y1="6" x2="13" y2="8" stroke="currentColor" strokeWidth="0.7" strokeLinecap="round" />
-      <line x1="10" y1="10" x2="6" y2="12" stroke="currentColor" strokeWidth="0.7" strokeLinecap="round" />
-      <line x1="10" y1="10" x2="14" y2="12" stroke="currentColor" strokeWidth="0.7" strokeLinecap="round" />
+      {/* Curved central shaft with quill tip at bottom */}
+      <path d="M10 2 C10.8 5, 9.2 10, 10 16" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+      <path d="M10 16 C10.2 17, 10.6 18, 11 19" stroke="currentColor" strokeWidth="0.8" strokeLinecap="round" />
+      {/* Left vane: curved barb lines fanning out */}
+      <path d="M10 4.5 C8.5 5, 7 5.5, 5.5 7" stroke="currentColor" strokeWidth="0.75" strokeLinecap="round" />
+      <path d="M10 7 C8.5 7.5, 7 8.5, 5.5 9.5" stroke="currentColor" strokeWidth="0.75" strokeLinecap="round" />
+      <path d="M10 9.5 C8.5 10, 7.5 11, 6.5 12" stroke="currentColor" strokeWidth="0.75" strokeLinecap="round" />
+      <path d="M10 12 C9 12.5, 8.5 13.5, 7.5 14.5" stroke="currentColor" strokeWidth="0.65" strokeLinecap="round" />
+      {/* Right vane: curved barb lines fanning out */}
+      <path d="M10 4.5 C11.5 5, 13 5.5, 14.5 7" stroke="currentColor" strokeWidth="0.75" strokeLinecap="round" />
+      <path d="M10 7 C11.5 7.5, 13 8.5, 14.5 9.5" stroke="currentColor" strokeWidth="0.75" strokeLinecap="round" />
+      <path d="M10 9.5 C11.5 10, 12.5 11, 13.5 12" stroke="currentColor" strokeWidth="0.75" strokeLinecap="round" />
+      <path d="M10 12 C11 12.5, 11.5 13.5, 12.5 14.5" stroke="currentColor" strokeWidth="0.65" strokeLinecap="round" />
     </svg>
   );
 }

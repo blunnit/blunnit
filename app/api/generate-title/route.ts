@@ -18,20 +18,20 @@ export async function POST(req: NextRequest) {
 
   const msg = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
-    max_tokens: 20,
+    max_tokens: 15,
     messages: [{
       role: 'user',
-      content: `Generate a 3-6 word topic title for this conversation. Respond with only the title, nothing else:\n\n${combined.slice(0, 600)}`,
+      content: `Generate a 2-4 word topic title for this conversation. Respond with ONLY the title, nothing else. Maximum 4 words.\n\n${combined.slice(0, 600)}`,
     }],
   });
 
   const raw = (msg.content[0] as { type: string; text: string }).text?.trim() || '';
-  const title = raw.replace(/^["']|["']$/g, '').slice(0, 60).trim();
+  const title = raw.replace(/^["']|["']$/g, '').slice(0, 30).trim();
 
   const supabase = createServiceClient();
   await supabase
     .from('conversations')
-    .update({ title: title || (messages[0] as string).slice(0, 40) })
+    .update({ title: title || (messages[0] as string).slice(0, 30) })
     .eq('id', conversationId)
     .eq('user_id', userId);
 
