@@ -249,10 +249,8 @@ export default function SidePanel({
 
         {/* Logo — desktop only, main view only */}
         {isDesktop && !manageView && (
-          <div style={{ marginBottom: 24, paddingBottom: 20, borderBottom: '1px solid var(--border)', flexShrink: 0, position: 'relative' }}>
-            <img src="/logo.png" alt="" style={{ width: 22, height: 'auto', marginBottom: 10, display: 'block' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-            <p style={{ fontSize: 13, fontWeight: 400, letterSpacing: 5, textTransform: 'uppercase', color: 'var(--text)', margin: '0 0 2px 0', fontFamily: F }}>The Blunnit Mirror</p>
-            <p style={{ fontSize: 9, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-muted)', margin: 0, fontFamily: F }}>Pierce The Illusion</p>
+          <div style={{ marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid var(--border)', flexShrink: 0, position: 'relative', display: 'flex', justifyContent: 'center' }}>
+            <img src="/logo.png" alt="" style={{ width: 24, height: 'auto', display: 'block' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
             {onToggleSidebar && (
               <button
                 onClick={onToggleSidebar}

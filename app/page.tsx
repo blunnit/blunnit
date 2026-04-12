@@ -715,13 +715,11 @@ export default function Home() {
         {screen === 'home' && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100vh', textAlign: 'center', animation: 'fadeIn 0.8s ease', paddingTop: isDesktop ? 28 : 60, paddingBottom: 40 }}>
 
-            {(!isDesktop || !sidebarOpen) && (
-              <div style={{ paddingTop: isDesktop ? 60 : 20, paddingBottom: isDesktop ? 40 : 32, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                <img src="/logo.png" alt="" style={{ width: isDesktop ? 64 : 48, height: 'auto', marginBottom: 28 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                <h1 style={{ fontSize: isDesktop ? 48 : 32, fontWeight: 400, letterSpacing: isDesktop ? 10 : 8, margin: '0 0 12px 0', fontFamily: F, textTransform: 'uppercase', textAlign: 'center' }}>The Blunnit Mirror</h1>
-                <p style={{ fontSize: 11, letterSpacing: 5, textTransform: 'uppercase', color: 'var(--text-muted)', margin: 0, fontFamily: F }}>Pierce The Illusion</p>
-              </div>
-            )}
+            <div style={{ paddingTop: isDesktop ? 60 : 20, paddingBottom: isDesktop ? 40 : 32, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+              <img src="/logo.png" alt="" style={{ width: isDesktop ? 50 : 40, height: 'auto', marginBottom: 28 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              <h1 style={{ fontSize: isDesktop ? 48 : 32, fontWeight: 400, letterSpacing: isDesktop ? 10 : 8, margin: '0 0 12px 0', fontFamily: F, textTransform: 'uppercase', textAlign: 'center' }}>The Blunnit Mirror</h1>
+              <p style={{ fontSize: 11, letterSpacing: 5, textTransform: 'uppercase', color: 'var(--text-muted)', margin: 0, fontFamily: F }}>Pierce The Illusion</p>
+            </div>
 
             {/* Auth-dependent section — hold placeholder until both auth and limits are resolved */}
             {(authLoading || (!!user && !limitsLoaded)) ? (
