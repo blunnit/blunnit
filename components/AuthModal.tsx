@@ -57,11 +57,11 @@ export default function AuthModal({ onClose }: Props) {
 
         <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-          style={{ width: '100%', padding: '14px 16px', marginBottom: 12, background: '#0e0e0e', border: '1px solid #1a1a1a', color: '#e8e4df', fontSize: 16, outline: 'none', boxSizing: 'border-box', fontFamily: F }} />
+          style={{ width: '100%', padding: '14px 16px', marginBottom: 12, background: '#1a1a1a', border: '1px solid #2a2a2a', color: '#e8e4df', fontSize: 16, outline: 'none', boxSizing: 'border-box', fontFamily: F }} />
 
         <input type="password" placeholder="Password (min 6 characters)" value={password} onChange={(e) => setPassword(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-          style={{ width: '100%', padding: '14px 16px', marginBottom: 20, background: '#0e0e0e', border: '1px solid #1a1a1a', color: '#e8e4df', fontSize: 16, outline: 'none', boxSizing: 'border-box', fontFamily: F }} />
+          style={{ width: '100%', padding: '14px 16px', marginBottom: 20, background: '#1a1a1a', border: '1px solid #2a2a2a', color: '#e8e4df', fontSize: 16, outline: 'none', boxSizing: 'border-box', fontFamily: F }} />
 
         {error && <p style={{ fontSize: 14, color: '#ff6b6b', marginBottom: 16, fontFamily: F }}>{error}</p>}
 
@@ -76,9 +76,9 @@ export default function AuthModal({ onClose }: Props) {
             />
             <span style={{ fontSize: 13, color: '#7a756f', fontFamily: F, lineHeight: 1.6 }}>
               I confirm I am 18 years or older and I agree to the{' '}
-              <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: '#a09a94', textDecoration: 'underline' }}>Terms of Service</a>
+              <a href="/terms" style={{ color: '#a09a94', textDecoration: 'underline' }}>Terms of Service</a>
               {' '}and{' '}
-              <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: '#a09a94', textDecoration: 'underline' }}>Privacy Policy</a>.
+              <a href="/privacy" style={{ color: '#a09a94', textDecoration: 'underline' }}>Privacy Policy</a>.
             </span>
           </label>
         )}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { createClient } from '@/lib/supabase-browser';
 
 const F = "'Cormorant Garamond', Georgia, serif";
 
@@ -20,35 +21,42 @@ type Props = {
   onUpgrade: () => void;
   onNewReflection: () => void;
   onDeleteAccount: () => void;
-};
-
-const hoverMuted = (e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
-  const el = e.currentTarget as HTMLElement;
-  el.style.color = 'var(--text-dim)';
-  el.style.borderColor = 'var(--border-hover)';
-};
-const unhoverMuted = (e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
-  const el = e.currentTarget as HTMLElement;
-  el.style.color = 'var(--text-muted)';
-  el.style.borderColor = 'var(--border)';
+  displayName: string | null;
+  showDailyPrompt: boolean;
+  onToggleDailyPrompt: () => void;
+  onChangeName: (name: string) => Promise<void>;
 };
 
 export default function SidePanel({
   open, user, savedConvos, onClose, onLoadConvo, onDeleteConvo, onRenameConvo,
   onShowSafety, onLogout, onUpgrade, onNewReflection, onDeleteAccount,
+  displayName, showDailyPrompt, onToggleDailyPrompt, onChangeName,
 }: Props) {
+  const [manageView, setManageView] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [cancelDone, setCancelDone] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [manageOpen, setManageOpen] = useState(false);
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [isMobile, setIsMobile] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  // Manage view state
+  const [editingName, setEditingName] = useState(false);
+  const [nameValue, setNameValue] = useState('');
+  const [savingName, setSavingName] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+
   const menuRef = useRef<HTMLDivElement>(null);
+  const supabase = createClient();
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 520);
@@ -75,6 +83,17 @@ export default function SidePanel({
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [openMenuId]);
+
+  // Reset manage view when panel closes
+  useEffect(() => {
+    if (!open) {
+      setManageView(false);
+      setEditingName(false);
+      setChangingPassword(false);
+      setPasswordError(null);
+      setPasswordSuccess(false);
+    }
+  }, [open]);
 
   const togglePin = (id: string) => {
     setPinnedIds(prev => {
@@ -130,6 +149,36 @@ export default function SidePanel({
     setCancelling(false);
   };
 
+  const handleSaveName = async () => {
+    const trimmed = nameValue.trim();
+    if (!trimmed) { setEditingName(false); return; }
+    setSavingName(true);
+    try {
+      await onChangeName(trimmed);
+    } catch {}
+    setSavingName(false);
+    setEditingName(false);
+  };
+
+  const handleChangePassword = async () => {
+    setPasswordError(null);
+    if (!newPassword) { setPasswordError('Enter a new password.'); return; }
+    if (newPassword.length < 6) { setPasswordError('Password must be at least 6 characters.'); return; }
+    if (newPassword !== confirmPassword) { setPasswordError('Passwords do not match.'); return; }
+    setSavingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) { setPasswordError(error.message); }
+      else {
+        setPasswordSuccess(true);
+        setNewPassword('');
+        setConfirmPassword('');
+        setTimeout(() => { setChangingPassword(false); setPasswordSuccess(false); }, 2000);
+      }
+    } catch { setPasswordError('Something went wrong.'); }
+    setSavingPassword(false);
+  };
+
   const isPaid = user?.tier === 'paid';
 
   const sortedConvos = [...savedConvos].sort((a, b) => {
@@ -140,6 +189,30 @@ export default function SidePanel({
   });
 
   const panelWidth = isMobile ? '100vw' : 300;
+
+  const inputStyle = {
+    width: '100%', padding: '10px 12px',
+    background: '#0e0e0e', border: '1px solid var(--border)',
+    color: 'var(--text)', fontSize: 13, outline: 'none',
+    boxSizing: 'border-box' as const, fontFamily: F, fontWeight: 300,
+    marginBottom: 8,
+  };
+
+  const sectionLabel = {
+    fontSize: 9, letterSpacing: 3, textTransform: 'uppercase' as const,
+    color: 'var(--text-muted)', margin: '0 0 10px 0', fontFamily: F,
+  };
+
+  const rowBtn = (dimRed = false, disabled = false) => ({
+    width: '100%', padding: '11px 14px', background: 'none',
+    border: `1px solid ${dimRed ? '#4a2020' : 'var(--border)'}`,
+    color: dimRed ? '#4a2020' : 'var(--text-muted)',
+    fontSize: 10, letterSpacing: 2, textTransform: 'uppercase' as const,
+    cursor: disabled ? 'default' : 'pointer', fontFamily: F,
+    transition: 'border-color 0.2s ease, color 0.2s ease',
+    opacity: disabled ? 0.5 : 1,
+    textAlign: 'left' as const,
+  });
 
   return (
     <>
@@ -168,9 +241,20 @@ export default function SidePanel({
 
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28, flexShrink: 0 }}>
-          <span style={{ fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-dim)', fontFamily: F }}>
-            Account
-          </span>
+          {manageView ? (
+            <button
+              onClick={() => { setManageView(false); setEditingName(false); setChangingPassword(false); setPasswordError(null); setPasswordSuccess(false); }}
+              style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, padding: 0, transition: 'color 0.2s ease' }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; }}
+            >
+              {String.fromCharCode(8592)} Account
+            </button>
+          ) : (
+            <span style={{ fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-dim)', fontFamily: F }}>
+              Account
+            </span>
+          )}
           <button
             onClick={onClose}
             style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 20, fontFamily: F, lineHeight: 1, padding: 0, transition: 'color 0.2s ease' }}
@@ -181,491 +265,620 @@ export default function SidePanel({
           </button>
         </div>
 
-        {/* Scrollable body */}
-        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          {user && (
-            <>
-              {/* Account info */}
-              <div style={{ marginBottom: 24, paddingBottom: 20, borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-                <p style={{ fontSize: 14, color: 'var(--text)', margin: '0 0 6px 0', fontFamily: F, wordBreak: 'break-all', fontWeight: 300 }}>
-                  {user.email}
-                </p>
-                <p style={{ fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--text-muted)', margin: 0, fontFamily: F }}>
-                  {isPaid ? '◆ Full Access' : 'Free'}
-                </p>
-              </div>
-
-              {/* History: paid only */}
-              {isPaid ? (
-                <div style={{ marginBottom: 16 }}>
-                  <p style={{ fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 10px 0', fontFamily: F, flexShrink: 0 }}>
-                    Past Reflections
-                  </p>
-
-                  {sortedConvos.length === 0 ? (
-                    <p style={{ fontSize: 13, color: 'var(--text-muted)', fontFamily: F, fontWeight: 300, margin: 0 }}>
-                      No reflections yet.
+        {/* Main view */}
+        {!manageView && (
+          <>
+            {/* Scrollable body */}
+            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+              {user && (
+                <>
+                  {/* Account info */}
+                  <div style={{ marginBottom: 24, paddingBottom: 20, borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+                    {displayName && (
+                      <p style={{ fontSize: 15, color: 'var(--text)', margin: '0 0 2px 0', fontFamily: F, fontWeight: 300 }}>
+                        {displayName}
+                      </p>
+                    )}
+                    <p style={{ fontSize: 13, color: displayName ? 'var(--text-dim)' : 'var(--text)', margin: '0 0 6px 0', fontFamily: F, wordBreak: 'break-all', fontWeight: 300 }}>
+                      {user.email}
                     </p>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                      {sortedConvos.slice(0, 30).map((c) => {
-                        const pinned = pinnedIds.has(c.id);
-                        const menuOpen = openMenuId === c.id;
-                        const confirmingDelete = confirmDeleteId === c.id;
+                    <p style={{ fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--text-muted)', margin: 0, fontFamily: F }}>
+                      {isPaid ? '◆ Full Access' : 'Free'}
+                    </p>
+                  </div>
 
-                        if (editingId === c.id) {
-                          return (
-                            <div key={c.id} style={{ border: '1px solid var(--border-hover)', padding: '8px 10px' }}>
-                              <input
-                                autoFocus
-                                value={editTitle}
-                                onChange={(e) => setEditTitle(e.target.value)}
-                                onBlur={() => commitEdit(c.id)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') commitEdit(c.id);
-                                  if (e.key === 'Escape') setEditingId(null);
-                                }}
-                                style={{
-                                  width: '100%', background: 'transparent', border: 'none',
-                                  color: 'var(--text)', fontSize: 12, fontFamily: F,
-                                  fontWeight: 300, outline: 'none', padding: 0,
-                                }}
-                              />
-                            </div>
-                          );
-                        }
+                  {/* History: paid only */}
+                  {isPaid ? (
+                    <div style={{ marginBottom: 16 }}>
+                      <p style={{ fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 10px 0', fontFamily: F, flexShrink: 0 }}>
+                        Past Reflections
+                      </p>
 
-                        return (
-                          <div
-                            key={c.id}
-                            style={{
-                              position: 'relative',
-                              border: `1px solid ${pinned ? 'var(--border-hover)' : 'var(--border)'}`,
-                              transition: 'border-color 0.2s ease',
-                            }}
-                            ref={menuOpen ? menuRef : undefined}
-                            onMouseEnter={e => { if (!pinned) e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
-                            onMouseLeave={e => { if (!pinned) e.currentTarget.style.borderColor = 'var(--border)'; }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'stretch' }}>
-                              <button
-                                onClick={() => { onLoadConvo(c.id); onClose(); }}
-                                style={{
-                                  flex: 1, textAlign: 'left', padding: '9px 10px',
-                                  background: 'transparent', border: 'none',
-                                  color: 'var(--text)', cursor: 'pointer', fontFamily: F,
-                                  minWidth: 0,
-                                }}
-                              >
-                                <div style={{ fontSize: 12, fontWeight: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {pinned && <span style={{ marginRight: 5, fontSize: 9, color: 'var(--text-dim)', verticalAlign: 'middle' }}>◆</span>}
-                                  {c.title || 'Untitled reflection'}
+                      {sortedConvos.length === 0 ? (
+                        <p style={{ fontSize: 13, color: 'var(--text-muted)', fontFamily: F, fontWeight: 300, margin: 0 }}>
+                          No reflections yet.
+                        </p>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                          {sortedConvos.slice(0, 30).map((c) => {
+                            const pinned = pinnedIds.has(c.id);
+                            const menuOpen = openMenuId === c.id;
+                            const confirmingDelete = confirmDeleteId === c.id;
+
+                            if (editingId === c.id) {
+                              return (
+                                <div key={c.id} style={{ border: '1px solid var(--border-hover)', padding: '8px 10px' }}>
+                                  <input
+                                    autoFocus
+                                    value={editTitle}
+                                    onChange={(e) => setEditTitle(e.target.value)}
+                                    onBlur={() => commitEdit(c.id)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') commitEdit(c.id);
+                                      if (e.key === 'Escape') setEditingId(null);
+                                    }}
+                                    style={{
+                                      width: '100%', background: 'transparent', border: 'none',
+                                      color: 'var(--text)', fontSize: 12, fontFamily: F,
+                                      fontWeight: 300, outline: 'none', padding: 0,
+                                    }}
+                                  />
                                 </div>
-                                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>
-                                  {new Date(c.updated_at).toLocaleDateString()}
-                                </div>
-                              </button>
+                              );
+                            }
 
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setOpenMenuId(menuOpen ? null : c.id);
-                                  setConfirmDeleteId(null);
-                                }}
+                            return (
+                              <div
+                                key={c.id}
                                 style={{
-                                  background: 'none', border: 'none', borderLeft: '1px solid var(--border)',
-                                  color: menuOpen ? 'var(--text)' : 'var(--text-muted)',
-                                  cursor: 'pointer', padding: '0 10px', fontSize: 16,
-                                  fontFamily: F, flexShrink: 0, lineHeight: 1,
-                                  transition: 'color 0.2s ease',
+                                  position: 'relative',
+                                  border: `1px solid ${pinned ? 'var(--border-hover)' : 'var(--border)'}`,
+                                  transition: 'border-color 0.2s ease',
                                 }}
-                                onMouseEnter={e => { if (!menuOpen) e.currentTarget.style.color = 'var(--text-dim)'; }}
-                                onMouseLeave={e => { if (!menuOpen) e.currentTarget.style.color = 'var(--text-muted)'; }}
+                                ref={menuOpen ? menuRef : undefined}
+                                onMouseEnter={e => { if (!pinned) e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
+                                onMouseLeave={e => { if (!pinned) e.currentTarget.style.borderColor = 'var(--border)'; }}
                               >
-                                ⋮
-                              </button>
-                            </div>
-
-                            {/* Dropdown */}
-                            {menuOpen && (
-                              <div style={{
-                                position: 'absolute', right: 0, top: '100%',
-                                zIndex: 10, minWidth: 150,
-                                background: '#000', border: '1px solid var(--border)',
-                                boxShadow: '0 4px 20px rgba(0,0,0,0.8)',
-                              }}>
-                                {!confirmingDelete ? (
-                                  <>
-                                    <button
-                                      onClick={() => startEdit(c.id, c.title)}
-                                      style={{
-                                        display: 'block', width: '100%', textAlign: 'left',
-                                        padding: '10px 14px', background: 'none', border: 'none',
-                                        borderBottom: '1px solid var(--border)',
-                                        color: 'var(--text-dim)', fontSize: 12, fontFamily: F,
-                                        fontWeight: 300, cursor: 'pointer', letterSpacing: 0.5,
-                                        transition: 'color 0.2s ease',
-                                      }}
-                                      onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; }}
-                                      onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; }}
-                                    >
-                                      Rename
-                                    </button>
-                                    <button
-                                      onClick={() => togglePin(c.id)}
-                                      style={{
-                                        display: 'block', width: '100%', textAlign: 'left',
-                                        padding: '10px 14px', background: 'none', border: 'none',
-                                        borderBottom: '1px solid var(--border)',
-                                        color: 'var(--text-dim)', fontSize: 12, fontFamily: F,
-                                        fontWeight: 300, cursor: 'pointer', letterSpacing: 0.5,
-                                        transition: 'color 0.2s ease',
-                                      }}
-                                      onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; }}
-                                      onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; }}
-                                    >
-                                      {pinned ? 'Unpin' : 'Pin'}
-                                    </button>
-                                    <button
-                                      onClick={() => setConfirmDeleteId(c.id)}
-                                      style={{
-                                        display: 'block', width: '100%', textAlign: 'left',
-                                        padding: '10px 14px', background: 'none', border: 'none',
-                                        color: '#6b3030', fontSize: 12, fontFamily: F,
-                                        fontWeight: 300, cursor: 'pointer', letterSpacing: 0.5,
-                                        transition: 'color 0.2s ease',
-                                      }}
-                                      onMouseEnter={e => { e.currentTarget.style.color = '#ff6b6b'; }}
-                                      onMouseLeave={e => { e.currentTarget.style.color = '#6b3030'; }}
-                                    >
-                                      Delete
-                                    </button>
-                                  </>
-                                ) : (
-                                  <div style={{ padding: '12px 14px' }}>
-                                    <p style={{ fontSize: 11, color: 'var(--text-dim)', margin: '0 0 10px 0', fontFamily: F, fontWeight: 300, lineHeight: 1.5 }}>
-                                      Delete this reflection?
-                                    </p>
-                                    <div style={{ display: 'flex', gap: 8 }}>
-                                      <button
-                                        onClick={() => handleDelete(c.id)}
-                                        style={{
-                                          flex: 1, padding: '7px 0', background: 'none',
-                                          border: '1px solid #4a2020',
-                                          color: '#6b3030', fontSize: 10, fontFamily: F,
-                                          letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer',
-                                          transition: 'border-color 0.2s ease, color 0.2s ease',
-                                        }}
-                                        onMouseEnter={e => { e.currentTarget.style.borderColor = '#ff6b6b'; e.currentTarget.style.color = '#ff6b6b'; }}
-                                        onMouseLeave={e => { e.currentTarget.style.borderColor = '#4a2020'; e.currentTarget.style.color = '#6b3030'; }}
-                                      >
-                                        Yes
-                                      </button>
-                                      <button
-                                        onClick={() => setConfirmDeleteId(null)}
-                                        style={{
-                                          flex: 1, padding: '7px 0', background: 'none',
-                                          border: '1px solid var(--border)',
-                                          color: 'var(--text-muted)', fontSize: 10, fontFamily: F,
-                                          letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer',
-                                          transition: 'border-color 0.2s ease, color 0.2s ease',
-                                        }}
-                                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; e.currentTarget.style.color = 'var(--text-dim)'; }}
-                                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
-                                      >
-                                        Cancel
-                                      </button>
+                                <div style={{ display: 'flex', alignItems: 'stretch' }}>
+                                  <button
+                                    onClick={() => { onLoadConvo(c.id); onClose(); }}
+                                    style={{
+                                      flex: 1, textAlign: 'left', padding: '9px 10px',
+                                      background: 'transparent', border: 'none',
+                                      color: 'var(--text)', cursor: 'pointer', fontFamily: F,
+                                      minWidth: 0,
+                                    }}
+                                  >
+                                    <div style={{ fontSize: 12, fontWeight: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                      {pinned && <span style={{ marginRight: 5, fontSize: 9, color: 'var(--text-dim)', verticalAlign: 'middle' }}>◆</span>}
+                                      {c.title || 'New Reflection'}
                                     </div>
+                                    <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>
+                                      {new Date(c.updated_at).toLocaleDateString()}
+                                    </div>
+                                  </button>
+
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setOpenMenuId(menuOpen ? null : c.id);
+                                      setConfirmDeleteId(null);
+                                    }}
+                                    style={{
+                                      background: 'none', border: 'none', borderLeft: '1px solid var(--border)',
+                                      color: menuOpen ? 'var(--text)' : 'var(--text-muted)',
+                                      cursor: 'pointer', padding: '0 10px', fontSize: 16,
+                                      fontFamily: F, flexShrink: 0, lineHeight: 1,
+                                      transition: 'color 0.2s ease',
+                                    }}
+                                    onMouseEnter={e => { if (!menuOpen) e.currentTarget.style.color = 'var(--text-dim)'; }}
+                                    onMouseLeave={e => { if (!menuOpen) e.currentTarget.style.color = 'var(--text-muted)'; }}
+                                  >
+                                    {String.fromCharCode(8942)}
+                                  </button>
+                                </div>
+
+                                {menuOpen && (
+                                  <div style={{
+                                    position: 'absolute', right: 0, top: '100%',
+                                    zIndex: 10, minWidth: 150,
+                                    background: '#000', border: '1px solid var(--border)',
+                                    boxShadow: '0 4px 20px rgba(0,0,0,0.8)',
+                                  }}>
+                                    {!confirmingDelete ? (
+                                      <>
+                                        <button
+                                          onClick={() => startEdit(c.id, c.title)}
+                                          style={{
+                                            display: 'block', width: '100%', textAlign: 'left',
+                                            padding: '10px 14px', background: 'none', border: 'none',
+                                            borderBottom: '1px solid var(--border)',
+                                            color: 'var(--text-dim)', fontSize: 12, fontFamily: F,
+                                            fontWeight: 300, cursor: 'pointer', letterSpacing: 0.5,
+                                            transition: 'color 0.2s ease',
+                                          }}
+                                          onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; }}
+                                          onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; }}
+                                        >
+                                          Rename
+                                        </button>
+                                        <button
+                                          onClick={() => togglePin(c.id)}
+                                          style={{
+                                            display: 'block', width: '100%', textAlign: 'left',
+                                            padding: '10px 14px', background: 'none', border: 'none',
+                                            borderBottom: '1px solid var(--border)',
+                                            color: 'var(--text-dim)', fontSize: 12, fontFamily: F,
+                                            fontWeight: 300, cursor: 'pointer', letterSpacing: 0.5,
+                                            transition: 'color 0.2s ease',
+                                          }}
+                                          onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; }}
+                                          onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; }}
+                                        >
+                                          {pinned ? 'Unpin' : 'Pin'}
+                                        </button>
+                                        <button
+                                          onClick={() => setConfirmDeleteId(c.id)}
+                                          style={{
+                                            display: 'block', width: '100%', textAlign: 'left',
+                                            padding: '10px 14px', background: 'none', border: 'none',
+                                            color: '#6b3030', fontSize: 12, fontFamily: F,
+                                            fontWeight: 300, cursor: 'pointer', letterSpacing: 0.5,
+                                            transition: 'color 0.2s ease',
+                                          }}
+                                          onMouseEnter={e => { e.currentTarget.style.color = '#ff6b6b'; }}
+                                          onMouseLeave={e => { e.currentTarget.style.color = '#6b3030'; }}
+                                        >
+                                          Delete
+                                        </button>
+                                      </>
+                                    ) : (
+                                      <div style={{ padding: '12px 14px' }}>
+                                        <p style={{ fontSize: 11, color: 'var(--text-dim)', margin: '0 0 10px 0', fontFamily: F, fontWeight: 300, lineHeight: 1.5 }}>
+                                          Delete this reflection?
+                                        </p>
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                          <button
+                                            onClick={() => handleDelete(c.id)}
+                                            style={{
+                                              flex: 1, padding: '7px 0', background: 'none',
+                                              border: '1px solid #4a2020',
+                                              color: '#6b3030', fontSize: 10, fontFamily: F,
+                                              letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer',
+                                              transition: 'border-color 0.2s ease, color 0.2s ease',
+                                            }}
+                                            onMouseEnter={e => { e.currentTarget.style.borderColor = '#ff6b6b'; e.currentTarget.style.color = '#ff6b6b'; }}
+                                            onMouseLeave={e => { e.currentTarget.style.borderColor = '#4a2020'; e.currentTarget.style.color = '#6b3030'; }}
+                                          >
+                                            Yes
+                                          </button>
+                                          <button
+                                            onClick={() => setConfirmDeleteId(null)}
+                                            style={{
+                                              flex: 1, padding: '7px 0', background: 'none',
+                                              border: '1px solid var(--border)',
+                                              color: 'var(--text-muted)', fontSize: 10, fontFamily: F,
+                                              letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer',
+                                              transition: 'border-color 0.2s ease, color 0.2s ease',
+                                            }}
+                                            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; e.currentTarget.style.color = 'var(--text-dim)'; }}
+                                            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                                          >
+                                            Cancel
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                 )}
                               </div>
-                            )}
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div style={{ marginBottom: 16 }}>
+                      <p style={{ fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 10px 0', fontFamily: F }}>
+                        Past Reflections
+                      </p>
+                      {savedConvos.length > 0 ? (
+                        <>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 12 }}>
+                            {savedConvos.slice(0, 15).map(c => (
+                              <button
+                                key={c.id}
+                                onClick={() => { onClose(); onUpgrade(); }}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: 8,
+                                  padding: '9px 10px', border: '1px solid var(--border)',
+                                  background: 'transparent', width: '100%', textAlign: 'left',
+                                  cursor: 'pointer', fontFamily: F,
+                                  transition: 'border-color 0.2s ease',
+                                }}
+                                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
+                                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; }}
+                              >
+                                <span style={{ fontSize: 9, color: 'var(--text-muted)', opacity: 0.5, flexShrink: 0 }}>■</span>
+                                <span style={{ fontSize: 12, fontWeight: 300, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                                  {c.title || 'New Reflection'}
+                                </span>
+                              </button>
+                            ))}
                           </div>
-                        );
-                      })}
+                          <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '0 0 12px 0', fontFamily: F, fontWeight: 300, lineHeight: 1.6 }}>
+                            Upgrade to revisit past reflections.
+                          </p>
+                        </>
+                      ) : (
+                        <p style={{ fontSize: 13, color: 'var(--text-muted)', fontFamily: F, fontWeight: 300, margin: '0 0 14px 0' }}>
+                          No reflections yet.
+                        </p>
+                      )}
+                      <button
+                        onClick={() => { onClose(); onUpgrade(); }}
+                        style={{
+                          width: '100%', padding: '10px 0',
+                          background: 'none', border: '1px solid var(--border-hover)',
+                          color: 'var(--text)', fontSize: 10, letterSpacing: 2,
+                          textTransform: 'uppercase', cursor: 'pointer', fontFamily: F,
+                          transition: 'border-color 0.2s ease, color 0.2s ease',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--text-muted)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
+                      >
+                        Get Full Access
+                      </button>
                     </div>
                   )}
-                </div>
-              ) : (
-                <div style={{ marginBottom: 16 }}>
-                  <p style={{ fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 10px 0', fontFamily: F }}>
-                    Past Reflections
-                  </p>
-                  {savedConvos.length > 0 ? (
-                    <>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 12 }}>
-                        {savedConvos.slice(0, 15).map(c => (
-                          <button
-                            key={c.id}
-                            onClick={() => { onClose(); onUpgrade(); }}
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: 8,
-                              padding: '9px 10px', border: '1px solid var(--border)',
-                              background: 'transparent', width: '100%', textAlign: 'left',
-                              cursor: 'pointer', fontFamily: F,
-                              transition: 'border-color 0.2s ease',
-                            }}
-                            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
-                            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; }}
-                          >
-                            <span style={{ fontSize: 9, color: 'var(--text-muted)', opacity: 0.5, flexShrink: 0 }}>■</span>
-                            <span style={{ fontSize: 12, fontWeight: 300, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                              {c.title || 'Untitled reflection'}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                      <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '0 0 12px 0', fontFamily: F, fontWeight: 300, lineHeight: 1.6 }}>
-                        Upgrade to revisit past reflections.
-                      </p>
-                    </>
-                  ) : (
-                    <p style={{ fontSize: 13, color: 'var(--text-muted)', fontFamily: F, fontWeight: 300, margin: '0 0 14px 0' }}>
-                      No reflections yet.
-                    </p>
-                  )}
-                  <button
-                    onClick={() => { onClose(); onUpgrade(); }}
-                    style={{
-                      width: '100%', padding: '10px 0',
-                      background: 'none', border: '1px solid var(--border-hover)',
-                      color: 'var(--text)', fontSize: 10, letterSpacing: 2,
-                      textTransform: 'uppercase', cursor: 'pointer', fontFamily: F,
-                      transition: 'border-color 0.2s ease, color 0.2s ease',
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--text-muted)'; e.currentTarget.style.color = 'var(--text)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; e.currentTarget.style.color = 'var(--text)'; }}
-                  >
-                    Get Full Access
-                  </button>
-                </div>
+                </>
               )}
-            </>
-          )}
-        </div>
-
-        {/* Fixed bottom section */}
-        <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 7, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-
-          <button
-            onClick={() => { onClose(); onNewReflection(); }}
-            style={{
-              padding: '11px 0', background: 'none',
-              border: '1px solid var(--border-hover)',
-              color: 'var(--text)', fontSize: 10, letterSpacing: 2,
-              textTransform: 'uppercase', cursor: 'pointer', fontFamily: F,
-              transition: 'border-color 0.2s ease, color 0.2s ease',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--text-muted)'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
-          >
-            New Reflection
-          </button>
-
-          {isPaid && (
-            <div style={{ padding: '12px 14px', border: '1px solid var(--border)' }}>
-              <p style={{ fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 4px 0', fontFamily: F }}>
-                Pattern Report
-              </p>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0, fontFamily: F, fontWeight: 300, fontStyle: 'italic' }}>
-                Pattern reports coming soon.
-              </p>
             </div>
-          )}
 
-          <a
-            href="https://blunnit.gumroad.com/l/protocol"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'block', padding: '11px 0',
-              border: '1px solid rgba(212, 207, 200, 0.25)',
-              color: 'var(--accent)', fontSize: 10, letterSpacing: 2,
-              textTransform: 'uppercase', textDecoration: 'none',
-              textAlign: 'center', fontFamily: F,
-              transition: 'border-color 0.2s ease, color 0.2s ease',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(212, 207, 200, 0.5)'; e.currentTarget.style.color = 'var(--text)'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(212, 207, 200, 0.25)'; e.currentTarget.style.color = 'var(--accent)'; }}
-          >
-            7-Day Protocol
-          </a>
-
-          {/* Manage Account toggle */}
-          <button
-            onClick={() => setManageOpen(v => !v)}
-            style={{
-              padding: '11px 14px', background: 'none',
-              border: '1px solid var(--border)',
-              color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2,
-              textTransform: 'uppercase', cursor: 'pointer', fontFamily: F,
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              transition: 'border-color 0.2s ease, color 0.2s ease',
-            }}
-            onMouseEnter={e => hoverMuted(e)}
-            onMouseLeave={e => unhoverMuted(e)}
-          >
-            <span>Manage Account</span>
-            <span style={{ fontSize: 8, letterSpacing: 0 }}>{manageOpen ? '▲' : '▼'}</span>
-          </button>
-
-          {/* Manage Account expanded */}
-          {manageOpen && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-
-              <a
-                href="/privacy"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: 'block', padding: '11px 0', textAlign: 'center',
-                  border: '1px solid var(--border)',
-                  color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2,
-                  textTransform: 'uppercase', textDecoration: 'none', fontFamily: F,
-                  transition: 'border-color 0.2s ease, color 0.2s ease',
-                }}
-                onMouseEnter={e => hoverMuted(e)}
-                onMouseLeave={e => unhoverMuted(e)}
-              >
-                Privacy Policy
-              </a>
-
-              <a
-                href="/terms"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: 'block', padding: '11px 0', textAlign: 'center',
-                  border: '1px solid var(--border)',
-                  color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2,
-                  textTransform: 'uppercase', textDecoration: 'none', fontFamily: F,
-                  transition: 'border-color 0.2s ease, color 0.2s ease',
-                }}
-                onMouseEnter={e => hoverMuted(e)}
-                onMouseLeave={e => unhoverMuted(e)}
-              >
-                Terms of Service
-              </a>
+            {/* Fixed bottom section */}
+            <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 7, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
 
               <button
-                onClick={() => { onClose(); onShowSafety(); }}
+                onClick={() => { onClose(); onNewReflection(); }}
                 style={{
                   padding: '11px 0', background: 'none',
-                  border: '1px solid var(--border)',
-                  color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2,
+                  border: '1px solid var(--border-hover)',
+                  color: 'var(--text)', fontSize: 10, letterSpacing: 2,
                   textTransform: 'uppercase', cursor: 'pointer', fontFamily: F,
-                  transition: 'border-color 0.2s ease, color 0.2s ease',
+                  transition: 'border-color 0.2s ease',
                 }}
-                onMouseEnter={e => hoverMuted(e)}
-                onMouseLeave={e => unhoverMuted(e)}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--text-muted)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
               >
-                Safety & Disclaimer
+                New Reflection
               </button>
 
-              {isPaid && !cancelDone && (
-                <button
-                  onClick={handleCancelSubscription}
-                  disabled={cancelling}
-                  style={{
-                    padding: '11px 0', background: 'none',
-                    border: '1px solid #4a2020',
-                    color: '#4a2020', fontSize: 10, letterSpacing: 2,
-                    textTransform: 'uppercase', cursor: cancelling ? 'default' : 'pointer',
-                    fontFamily: F, opacity: cancelling ? 0.5 : 1,
-                    transition: 'border-color 0.2s ease, color 0.2s ease',
-                  }}
-                  onMouseEnter={e => { if (!cancelling) { e.currentTarget.style.borderColor = '#6b3030'; e.currentTarget.style.color = '#6b3030'; } }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#4a2020'; e.currentTarget.style.color = '#4a2020'; }}
-                >
-                  {cancelling ? 'Cancelling...' : 'Cancel Subscription'}
-                </button>
-              )}
-
-              {cancelDone && (
-                <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', fontFamily: F, margin: '2px 0' }}>
-                  Subscription cancelled. Access continues until period end.
-                </p>
-              )}
-
-              <button
-                onClick={onLogout}
-                style={{
-                  padding: '11px 0', background: 'none',
-                  border: '1px solid var(--border)',
-                  color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2,
-                  textTransform: 'uppercase', cursor: 'pointer', fontFamily: F,
-                  transition: 'border-color 0.2s ease, color 0.2s ease',
-                }}
-                onMouseEnter={e => hoverMuted(e)}
-                onMouseLeave={e => unhoverMuted(e)}
-              >
-                Log Out
-              </button>
-
-              {/* Delete Account */}
-              {!confirmDelete ? (
-                <button
-                  onClick={() => setConfirmDelete(true)}
-                  style={{
-                    padding: '11px 0', background: 'none',
-                    border: '1px solid #4a2020',
-                    color: '#4a2020', fontSize: 10, letterSpacing: 2,
-                    textTransform: 'uppercase', cursor: 'pointer', fontFamily: F,
-                    transition: 'border-color 0.2s ease, color 0.2s ease',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#6b3030'; e.currentTarget.style.color = '#6b3030'; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#4a2020'; e.currentTarget.style.color = '#4a2020'; }}
-                >
-                  Delete Account
-                </button>
-              ) : (
-                <div style={{ border: '1px solid #4a2020', padding: '14px 16px' }}>
-                  <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '0 0 4px 0', fontFamily: F, fontWeight: 300, lineHeight: 1.6 }}>
-                    Permanently delete your account, all conversations, and all data. This cannot be undone.
+              {isPaid && (
+                <div style={{ padding: '12px 14px', border: '1px solid var(--border)' }}>
+                  <p style={{ fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 4px 0', fontFamily: F }}>
+                    Pattern Report
                   </p>
-                  <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0, fontFamily: F, fontWeight: 300, fontStyle: 'italic' }}>
+                    Pattern reports coming soon.
+                  </p>
+                </div>
+              )}
+
+              <a
+                href="https://blunnit.gumroad.com/l/protocol"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'block', padding: '11px 0',
+                  border: '1px solid rgba(212, 207, 200, 0.25)',
+                  color: 'var(--accent)', fontSize: 10, letterSpacing: 2,
+                  textTransform: 'uppercase', textDecoration: 'none',
+                  textAlign: 'center', fontFamily: F,
+                  transition: 'border-color 0.2s ease, color 0.2s ease',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(212, 207, 200, 0.5)'; e.currentTarget.style.color = 'var(--text)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(212, 207, 200, 0.25)'; e.currentTarget.style.color = 'var(--accent)'; }}
+              >
+                7-Day Protocol
+              </a>
+
+              <button
+                onClick={() => { setManageView(true); setNameValue(displayName || ''); }}
+                style={{
+                  padding: '11px 14px', background: 'none',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2,
+                  textTransform: 'uppercase', cursor: 'pointer', fontFamily: F,
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  transition: 'border-color 0.2s ease, color 0.2s ease',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+              >
+                <span>Manage Account</span>
+                <span style={{ fontSize: 10 }}>{String.fromCharCode(8250)}</span>
+              </button>
+
+            </div>
+          </>
+        )}
+
+        {/* Manage Account view */}
+        {manageView && (
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 28, minHeight: 0 }}>
+
+            {/* Profile section */}
+            <div>
+              <p style={sectionLabel}>Profile</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+
+                {/* Change Name */}
+                {!editingName ? (
+                  <div style={{ padding: '10px 14px', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: F, fontWeight: 300 }}>
+                      {displayName || 'No name set'}
+                    </span>
                     <button
-                      onClick={async () => {
-                        setDeleting(true);
-                        await onDeleteAccount();
-                        setDeleting(false);
-                        setConfirmDelete(false);
-                      }}
-                      disabled={deleting}
-                      style={{
-                        flex: 1, padding: '8px 0', background: 'none',
-                        border: '1px solid #4a2020', color: '#6b3030',
-                        fontSize: 10, fontFamily: F, letterSpacing: 1,
-                        textTransform: 'uppercase', cursor: deleting ? 'default' : 'pointer',
-                        opacity: deleting ? 0.5 : 1,
-                        transition: 'border-color 0.2s ease, color 0.2s ease',
-                      }}
-                      onMouseEnter={e => { if (!deleting) { e.currentTarget.style.borderColor = '#ff6b6b'; e.currentTarget.style.color = '#ff6b6b'; } }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = '#4a2020'; e.currentTarget.style.color = '#6b3030'; }}
+                      onClick={() => { setEditingName(true); setNameValue(displayName || ''); }}
+                      style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', cursor: 'pointer', fontFamily: F, transition: 'color 0.2s ease', padding: 0 }}
+                      onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-dim)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; }}
                     >
-                      {deleting ? 'Deleting...' : 'Yes, Delete'}
-                    </button>
-                    <button
-                      onClick={() => setConfirmDelete(false)}
-                      style={{
-                        flex: 1, padding: '8px 0', background: 'none',
-                        border: '1px solid var(--border)', color: 'var(--text-muted)',
-                        fontSize: 10, fontFamily: F, letterSpacing: 1,
-                        textTransform: 'uppercase', cursor: 'pointer',
-                        transition: 'border-color 0.2s ease, color 0.2s ease',
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; e.currentTarget.style.color = 'var(--text-dim)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
-                    >
-                      Cancel
+                      Edit Name
                     </button>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div style={{ border: '1px solid var(--border-hover)', padding: '10px 14px' }}>
+                    <input
+                      autoFocus
+                      value={nameValue}
+                      onChange={e => setNameValue(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') handleSaveName(); if (e.key === 'Escape') setEditingName(false); }}
+                      placeholder="Your name"
+                      style={{ ...inputStyle, marginBottom: 10 }}
+                    />
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        onClick={handleSaveName}
+                        disabled={savingName}
+                        style={{ flex: 1, padding: '8px 0', background: 'none', border: '1px solid var(--border-hover)', color: 'var(--text-dim)', fontSize: 10, fontFamily: F, letterSpacing: 1, textTransform: 'uppercase', cursor: savingName ? 'default' : 'pointer', transition: 'border-color 0.2s ease, color 0.2s ease' }}
+                        onMouseEnter={e => { if (!savingName) { e.currentTarget.style.borderColor = 'var(--text-muted)'; e.currentTarget.style.color = 'var(--text)'; } }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; e.currentTarget.style.color = 'var(--text-dim)'; }}
+                      >
+                        {savingName ? '...' : 'Save'}
+                      </button>
+                      <button
+                        onClick={() => setEditingName(false)}
+                        style={{ flex: 1, padding: '8px 0', background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: 10, fontFamily: F, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', transition: 'border-color 0.2s ease, color 0.2s ease' }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; e.currentTarget.style.color = 'var(--text-dim)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
 
+                {/* Change Password */}
+                {!changingPassword ? (
+                  <button
+                    onClick={() => { setChangingPassword(true); setPasswordError(null); setPasswordSuccess(false); }}
+                    style={{ ...rowBtn(), textAlign: 'center' }}
+                    onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+                  >
+                    Change Password
+                  </button>
+                ) : (
+                  <div style={{ border: '1px solid var(--border)', padding: '12px 14px' }}>
+                    {passwordSuccess ? (
+                      <p style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: F, fontWeight: 300, margin: 0 }}>Password updated.</p>
+                    ) : (
+                      <>
+                        <input
+                          type="password"
+                          placeholder="New password (min 6)"
+                          value={newPassword}
+                          onChange={e => { setNewPassword(e.target.value); setPasswordError(null); }}
+                          style={inputStyle}
+                        />
+                        <input
+                          type="password"
+                          placeholder="Confirm new password"
+                          value={confirmPassword}
+                          onChange={e => { setConfirmPassword(e.target.value); setPasswordError(null); }}
+                          onKeyDown={e => { if (e.key === 'Enter') handleChangePassword(); }}
+                          style={{ ...inputStyle, marginBottom: 10 }}
+                        />
+                        {passwordError && (
+                          <p style={{ fontSize: 12, color: '#ff6b6b', fontFamily: F, margin: '0 0 10px 0' }}>{passwordError}</p>
+                        )}
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button
+                            onClick={handleChangePassword}
+                            disabled={savingPassword}
+                            style={{ flex: 1, padding: '8px 0', background: 'none', border: '1px solid var(--border-hover)', color: 'var(--text-dim)', fontSize: 10, fontFamily: F, letterSpacing: 1, textTransform: 'uppercase', cursor: savingPassword ? 'default' : 'pointer', transition: 'border-color 0.2s ease, color 0.2s ease' }}
+                            onMouseEnter={e => { if (!savingPassword) { e.currentTarget.style.borderColor = 'var(--text-muted)'; e.currentTarget.style.color = 'var(--text)'; } }}
+                            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; e.currentTarget.style.color = 'var(--text-dim)'; }}
+                          >
+                            {savingPassword ? '...' : 'Update'}
+                          </button>
+                          <button
+                            onClick={() => { setChangingPassword(false); setNewPassword(''); setConfirmPassword(''); setPasswordError(null); }}
+                            style={{ flex: 1, padding: '8px 0', background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: 10, fontFamily: F, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', transition: 'border-color 0.2s ease, color 0.2s ease' }}
+                            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; e.currentTarget.style.color = 'var(--text-dim)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+              </div>
             </div>
-          )}
-        </div>
+
+            {/* Preferences section */}
+            <div>
+              <p style={sectionLabel}>Preferences</p>
+              <div style={{ padding: '12px 14px', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: F, fontWeight: 300 }}>Show Daily Prompt</span>
+                <button
+                  onClick={onToggleDailyPrompt}
+                  style={{
+                    padding: '4px 10px', background: 'none',
+                    border: `1px solid ${showDailyPrompt ? 'var(--border-hover)' : 'var(--border)'}`,
+                    color: showDailyPrompt ? 'var(--text-dim)' : 'var(--text-muted)',
+                    fontSize: 9, letterSpacing: 2, textTransform: 'uppercase',
+                    cursor: 'pointer', fontFamily: F, transition: 'all 0.2s ease',
+                    flexShrink: 0,
+                  }}
+                >
+                  {showDailyPrompt ? 'On' : 'Off'}
+                </button>
+              </div>
+            </div>
+
+            {/* Legal section */}
+            <div>
+              <p style={sectionLabel}>Legal</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+
+                <a
+                  href="/privacy"
+                  style={{
+                    display: 'block', padding: '11px 14px', textAlign: 'center',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2,
+                    textTransform: 'uppercase', textDecoration: 'none', fontFamily: F,
+                    transition: 'border-color 0.2s ease, color 0.2s ease',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+                >
+                  Privacy Policy
+                </a>
+
+                <a
+                  href="/terms"
+                  style={{
+                    display: 'block', padding: '11px 14px', textAlign: 'center',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2,
+                    textTransform: 'uppercase', textDecoration: 'none', fontFamily: F,
+                    transition: 'border-color 0.2s ease, color 0.2s ease',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+                >
+                  Terms of Service
+                </a>
+
+                <button
+                  onClick={() => { onClose(); onShowSafety(); }}
+                  style={{ ...rowBtn(), textAlign: 'center' }}
+                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+                >
+                  Safety & Disclaimer
+                </button>
+
+              </div>
+            </div>
+
+            {/* Account section */}
+            <div style={{ paddingBottom: 20 }}>
+              <p style={sectionLabel}>Account</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+
+                {isPaid && !cancelDone && (
+                  <button
+                    onClick={handleCancelSubscription}
+                    disabled={cancelling}
+                    style={{ ...rowBtn(true, cancelling), textAlign: 'center' }}
+                    onMouseEnter={e => { if (!cancelling) { e.currentTarget.style.borderColor = '#6b3030'; e.currentTarget.style.color = '#6b3030'; } }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#4a2020'; e.currentTarget.style.color = '#4a2020'; }}
+                  >
+                    {cancelling ? 'Cancelling...' : 'Cancel Subscription'}
+                  </button>
+                )}
+
+                {cancelDone && (
+                  <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', fontFamily: F, margin: '2px 0' }}>
+                    Subscription cancelled. Access continues until period end.
+                  </p>
+                )}
+
+                <button
+                  onClick={onLogout}
+                  style={{ ...rowBtn(), textAlign: 'center' }}
+                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+                >
+                  Log Out
+                </button>
+
+                {!confirmDelete ? (
+                  <button
+                    onClick={() => setConfirmDelete(true)}
+                    style={{ ...rowBtn(true), textAlign: 'center' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#6b3030'; e.currentTarget.style.color = '#6b3030'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#4a2020'; e.currentTarget.style.color = '#4a2020'; }}
+                  >
+                    Delete Account
+                  </button>
+                ) : (
+                  <div style={{ border: '1px solid #4a2020', padding: '14px 16px' }}>
+                    <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '0 0 4px 0', fontFamily: F, fontWeight: 300, lineHeight: 1.6 }}>
+                      Permanently delete your account, all conversations, and all data. This cannot be undone.
+                    </p>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                      <button
+                        onClick={async () => {
+                          setDeleting(true);
+                          await onDeleteAccount();
+                          setDeleting(false);
+                          setConfirmDelete(false);
+                        }}
+                        disabled={deleting}
+                        style={{
+                          flex: 1, padding: '8px 0', background: 'none',
+                          border: '1px solid #4a2020', color: '#6b3030',
+                          fontSize: 10, fontFamily: F, letterSpacing: 1,
+                          textTransform: 'uppercase', cursor: deleting ? 'default' : 'pointer',
+                          opacity: deleting ? 0.5 : 1,
+                          transition: 'border-color 0.2s ease, color 0.2s ease',
+                        }}
+                        onMouseEnter={e => { if (!deleting) { e.currentTarget.style.borderColor = '#ff6b6b'; e.currentTarget.style.color = '#ff6b6b'; } }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = '#4a2020'; e.currentTarget.style.color = '#6b3030'; }}
+                      >
+                        {deleting ? 'Deleting...' : 'Yes, Delete'}
+                      </button>
+                      <button
+                        onClick={() => setConfirmDelete(false)}
+                        style={{
+                          flex: 1, padding: '8px 0', background: 'none',
+                          border: '1px solid var(--border)', color: 'var(--text-muted)',
+                          fontSize: 10, fontFamily: F, letterSpacing: 1,
+                          textTransform: 'uppercase', cursor: 'pointer',
+                          transition: 'border-color 0.2s ease, color 0.2s ease',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; e.currentTarget.style.color = 'var(--text-dim)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+              </div>
+            </div>
+
+          </div>
+        )}
       </div>
     </>
   );

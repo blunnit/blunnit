@@ -112,6 +112,11 @@ export default function Home() {
   const [presenceCount, setPresenceCount] = useState(0);
   const [softCapShown, setSoftCapShown] = useState(false);
   const [savedConfirm, setSavedConfirm] = useState(false);
+  const [limitsLoaded, setLimitsLoaded] = useState(false);
+  const [showDailyPrompt, setShowDailyPrompt] = useState(true);
+  const [displayName, setDisplayName] = useState<string | null>(null);
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [nameInput, setNameInput] = useState('');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const pendingChoiceRef = useRef<string | null>(null);
@@ -176,15 +181,28 @@ export default function Home() {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
+        const dName = session.user.user_metadata?.display_name || null;
+        setDisplayName(dName);
         setUser({ id: session.user.id, email: session.user.email || '', tier: 'free' });
+        if (!dName) {
+          try {
+            if (!localStorage.getItem(`blunnit_name_asked_${session.user.id}`)) {
+              setShowNameModal(true);
+              localStorage.setItem(`blunnit_name_asked_${session.user.id}`, 'true');
+            }
+          } catch {}
+        }
       }
       setAuthLoading(false);
     };
     checkAuth();
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
+        const dName = session.user.user_metadata?.display_name || null;
+        setDisplayName(dName);
         setUser({ id: session.user.id, email: session.user.email || '', tier: 'free' });
       } else {
+        setDisplayName(null);
         setUser(null);
       }
     });
@@ -203,6 +221,7 @@ export default function Home() {
         setFreeRemaining(data.remaining ?? FREE_WEEKLY_LIMIT);
       }
     } catch {}
+    setLimitsLoaded(true);
   }, [user]);
 
   const loadConversations = useCallback(async () => {
@@ -263,6 +282,18 @@ export default function Home() {
     return () => { vv.removeEventListener('resize', handler); vv.removeEventListener('scroll', handler); };
   }, []);
 
+  // Reset limitsLoaded when user identity changes
+  useEffect(() => { setLimitsLoaded(false); }, [user?.id]);
+
+  // Load daily prompt toggle preference
+  useEffect(() => {
+    if (!user) { setShowDailyPrompt(true); return; }
+    try {
+      const stored = localStorage.getItem(`blunnit_show_prompt_${user.id}`);
+      setShowDailyPrompt(stored !== 'false');
+    } catch {}
+  }, [user?.id]);
+
   useEffect(() => { if (!authLoading && user) { checkLimits(); loadConversations(); loadThemes(); } }, [authLoading, user, checkLimits, loadConversations, loadThemes]);
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, streamedText]);
 
@@ -304,11 +335,10 @@ export default function Home() {
     await fetch('/api/conversations', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-user-id': user.id }, body: JSON.stringify({ action: 'message', conversationId: convId, role, content, confrontationLevel: level }) });
   };
 
-  const getOrCreateConversation = async (firstMsgText?: string): Promise<string | null> => {
+  const getOrCreateConversation = async (_firstMsgText?: string): Promise<string | null> => {
     if (!user) return null;
     if (conversationId) return conversationId;
-    const title = (firstMsgText || journalText).slice(0, 30).trim() || 'Untitled reflection';
-    const res = await fetch('/api/conversations', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-user-id': user.id }, body: JSON.stringify({ action: 'create', confrontation, title }) });
+    const res = await fetch('/api/conversations', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-user-id': user.id }, body: JSON.stringify({ action: 'create', confrontation, title: 'New Reflection' }) });
     const data = await res.json();
     if (data.conversation?.id) {
       setConversationId(data.conversation.id);
@@ -386,11 +416,13 @@ export default function Home() {
           setStreamedText(''); setIsReflecting(false);
           if (convId) saveMessage(convId, 'assistant', assistantText, reflectionLevel);
           if (!user) {
+            // POST to increment, then GET to sync accurate count from server
             fetch('/api/anon-limits', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ fingerprint: fingerprintRef.current }),
             })
+              .then(() => fetch(`/api/anon-limits?fingerprint=${encodeURIComponent(fingerprintRef.current)}`))
               .then(r => r.json())
               .then(d => { if (typeof d.remaining === 'number') setAnonRemaining(d.remaining); })
               .catch(() => setAnonRemaining(prev => Math.max(0, prev - 1)));
@@ -408,21 +440,23 @@ export default function Home() {
               }).then(() => fetch('/api/extract-themes', { headers: { 'x-user-id': user.id } }).then(r => r.json()).then(d => setUserThemes(d.themes || [])));
             }
             fetch('/api/conversations', { headers: { 'x-user-id': user.id } }).then(r => r.json()).then(d => setSavedConvos(d.conversations || []));
-            if (convId && currentMsgCount === 3 && !titleRegenFiredRef.current) {
-              titleRegenFiredRef.current = true;
-              const firstThreeUserMsgs = updatedMessages
-                .filter(m => m.role === 'user')
-                .slice(0, 3)
-                .map(m => m.content);
-              fetch('/api/generate-title', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-user-id': user.id },
-                body: JSON.stringify({ conversationId: convId, messages: firstThreeUserMsgs }),
-              }).then(r => r.json()).then(d => {
-                if (d.title) setSavedConvos(prev => prev.map(c => c.id === convId ? { ...c, title: d.title } : c));
-                // Refresh full list so side panel reflects the new title
-                fetch('/api/conversations', { headers: { 'x-user-id': user.id } }).then(r => r.json()).then(d2 => setSavedConvos(d2.conversations || []));
-              });
+            if (convId && !titleRegenFiredRef.current) {
+              const userMsgs = updatedMessages.filter(m => m.role === 'user');
+              const firstMsg = userMsgs[0]?.content?.toLowerCase().trim() || '';
+              const startsWithGreeting = /^(hi+|hello+|hey+)[.!?]?$/.test(firstMsg);
+              const triggerAt = startsWithGreeting ? 4 : 3;
+              if (currentMsgCount === triggerAt) {
+                titleRegenFiredRef.current = true;
+                const msgsForTitle = (startsWithGreeting ? userMsgs.slice(1, 4) : userMsgs.slice(0, 3)).map(m => m.content);
+                fetch('/api/generate-title', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'x-user-id': user.id },
+                  body: JSON.stringify({ conversationId: convId, messages: msgsForTitle }),
+                }).then(r => r.json()).then(d => {
+                  if (d.title) setSavedConvos(prev => prev.map(c => c.id === convId ? { ...c, title: d.title } : c));
+                  fetch('/api/conversations', { headers: { 'x-user-id': user.id } }).then(r => r.json()).then(d2 => setSavedConvos(d2.conversations || []));
+                });
+              }
             }
           }
         }
@@ -471,6 +505,30 @@ export default function Home() {
     // Show confirmation
     setSavedConfirm(true);
     setTimeout(() => setSavedConfirm(false), 2000);
+  };
+
+  const handleSaveName = async () => {
+    if (!user) { setShowNameModal(false); return; }
+    const trimmed = nameInput.trim();
+    if (trimmed) {
+      await supabase.auth.updateUser({ data: { display_name: trimmed } });
+      setDisplayName(trimmed);
+    }
+    setShowNameModal(false);
+    setNameInput('');
+  };
+
+  const handleChangeName = async (name: string) => {
+    if (!user) return;
+    await supabase.auth.updateUser({ data: { display_name: name } });
+    setDisplayName(name);
+  };
+
+  const handleToggleDailyPrompt = () => {
+    if (!user) return;
+    const newVal = !showDailyPrompt;
+    setShowDailyPrompt(newVal);
+    try { localStorage.setItem(`blunnit_show_prompt_${user.id}`, String(newVal)); } catch {}
   };
 
   const getLevelInfo = (key: string) => CONFRONTATION_LEVELS.find((l) => l.key === key);
@@ -536,7 +594,36 @@ export default function Home() {
           onUpgrade={() => setScreen('upgrade')}
           onNewReflection={() => { setShowSidePanel(false); goHome(); }}
           onDeleteAccount={handleDeleteAccount}
+          displayName={displayName}
+          showDailyPrompt={showDailyPrompt}
+          onToggleDailyPrompt={handleToggleDailyPrompt}
+          onChangeName={handleChangeName}
         />
+
+        {/* Name collection modal — shown once after first signup */}
+        {showNameModal && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 102, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 28, fontFamily: F }}>
+            <div style={{ maxWidth: 380, width: '100%', background: '#000', border: '1px solid #1a1a1a', padding: 32 }}>
+              <p style={{ fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: '#7a756f', margin: '0 0 8px 0', fontFamily: F }}>Welcome</p>
+              <p style={{ fontSize: 20, lineHeight: 1.5, color: '#e8e4df', margin: '0 0 24px 0', fontFamily: F, fontWeight: 300, fontStyle: 'italic' }}>What should we call you?</p>
+              <input
+                type="text"
+                placeholder="Your name (optional)"
+                value={nameInput}
+                onChange={e => setNameInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSaveName()}
+                autoFocus
+                style={{ width: '100%', padding: '14px 16px', marginBottom: 12, background: '#1a1a1a', border: '1px solid #2a2a2a', color: '#e8e4df', fontSize: 16, outline: 'none', boxSizing: 'border-box', fontFamily: F }}
+              />
+              <button onClick={handleSaveName} style={{ width: '100%', padding: '14px 0', background: '#e8e4df', color: '#000', border: 'none', fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', cursor: 'pointer', fontFamily: F, fontWeight: 500, marginBottom: 10 }}>
+                Continue
+              </button>
+              <button onClick={() => { setShowNameModal(false); setNameInput(''); }} style={{ width: '100%', padding: '10px 0', background: 'none', border: 'none', color: '#7a756f', fontSize: 12, letterSpacing: 2, cursor: 'pointer', fontFamily: F }}>
+                Skip
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Safety Modal */}
         {showSafetyInfo && (
@@ -557,7 +644,7 @@ export default function Home() {
               <p style={{ fontSize: 14, lineHeight: 1.8, color: 'var(--text-dim)', fontWeight: 300, fontFamily: F }}>By using BLUNNIT, you acknowledge that this tool provides AI-generated reflections for self-awareness purposes only. BLUNNIT, its creator, and its affiliates are not liable for decisions made based on the tool's output.</p>
               <p style={{ fontSize: 13, lineHeight: 1.8, color: 'var(--text-muted)', fontWeight: 300, fontFamily: F, marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
                 Your reflections help the mirror improve. Conversation data is used in anonymized form to refine AI quality. See our{' '}
-                <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-dim)', textDecoration: 'underline' }}>Privacy Policy</a> for details.
+                <a href="/privacy" style={{ color: 'var(--text-dim)', textDecoration: 'underline' }}>Privacy Policy</a> for details.
               </p>
             </div>
           </div>
@@ -579,9 +666,9 @@ export default function Home() {
             <button onClick={() => { localStorage.setItem('blunnit_accepted', 'true'); setScreen('home'); }} style={{ width: '100%', padding: '18px 0', background: 'var(--btn-bg)', color: 'var(--btn-text)', border: '1px solid var(--btn-bg)', fontSize: 14, letterSpacing: 3, textTransform: 'uppercase', cursor: 'pointer', fontFamily: F, fontWeight: 500 }}>I Understand, Enter</button>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '18px 0 0 0', fontFamily: F, fontWeight: 300, lineHeight: 1.7, textAlign: 'center' }}>
               By using BLUNNIT you agree to our{' '}
-              <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-dim)', textDecoration: 'underline' }}>Terms of Service</a>
+              <a href="/terms" style={{ color: 'var(--text-dim)', textDecoration: 'underline' }}>Terms of Service</a>
               {' '}and{' '}
-              <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-dim)', textDecoration: 'underline' }}>Privacy Policy</a>.
+              <a href="/privacy" style={{ color: 'var(--text-dim)', textDecoration: 'underline' }}>Privacy Policy</a>.
             </p>
           </div>
         )}
@@ -594,11 +681,11 @@ export default function Home() {
             <h1 style={{ fontSize: 36, fontWeight: 400, letterSpacing: 8, margin: '0 0 4px 0', fontFamily: F, textTransform: 'uppercase' }}>The Blunnit Mirror</h1>
             <p style={{ fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--text-muted)', margin: '0 0 40px 0', fontFamily: F }}>Pierce The Illusion</p>
 
-            {/* Auth-dependent section — placeholder reserves height during load to prevent layout shift */}
-            {authLoading ? (
+            {/* Auth-dependent section — hold placeholder until both auth and limits are resolved */}
+            {(authLoading || (!!user && !limitsLoaded)) ? (
               <div style={{ width: '100%', minHeight: 58, marginBottom: 24 }} />
             ) : (
-              <div style={{ width: '100%', animation: 'fadeIn 0.3s ease' }}>
+              <div style={{ width: '100%', animation: 'fadeIn 0.4s ease', transition: 'opacity 0.3s ease' }}>
                 {tier !== 'paid' && (
                   <div style={{ width: '100%', padding: '14px 18px', background: 'var(--surface)', border: '1px solid var(--border)', marginBottom: 24, textAlign: 'left' }}>
                     {tier === 'anonymous' ? (
@@ -641,12 +728,14 @@ export default function Home() {
               </p>
             )}
 
-            {/* Daily Prompt */}
-            <div style={{ borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', padding: '28px 0', margin: '0 0 32px 0', width: '100%' }}>
-              <p style={{ fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 16px 0', fontFamily: F }}>Today's Prompt</p>
-              <p style={{ fontSize: 20, lineHeight: 1.6, fontStyle: 'italic', color: 'var(--accent)', margin: '0 0 16px 0', fontWeight: 300, fontFamily: F }}>"{dailyPrompt}"</p>
-              <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: 0, fontFamily: F, fontWeight: 300, lineHeight: 1.6 }}>Use this, or bring something of your own. The mirror works best when you bring what's deeply true, not the polished version.</p>
-            </div>
+            {/* Daily Prompt — hidden if user toggled it off */}
+            {(!user || showDailyPrompt) && (
+              <div style={{ borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', padding: '28px 0', margin: '0 0 32px 0', width: '100%' }}>
+                <p style={{ fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 16px 0', fontFamily: F }}>Today's Prompt</p>
+                <p style={{ fontSize: 20, lineHeight: 1.6, fontStyle: 'italic', color: 'var(--accent)', margin: '0 0 16px 0', fontWeight: 300, fontFamily: F }}>"{dailyPrompt}"</p>
+                <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: 0, fontFamily: F, fontWeight: 300, lineHeight: 1.6 }}>Use this, or bring something of your own. The mirror works best when you bring what's deeply true, not the polished version.</p>
+              </div>
+            )}
 
             {/* Thoroughness guidance */}
             <div style={{ width: '100%', padding: '16px 18px', background: 'var(--surface)', border: '1px solid var(--border)', marginBottom: 16, textAlign: 'left' }}>
@@ -738,14 +827,14 @@ export default function Home() {
                   ))}
                   <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 4px' }} />
                   <button onClick={goHome} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, transition: 'color 0.2s ease' }} onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-dim)'; }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; }}>New</button>
-                  <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 4px' }} />
                   {user && (
-                    <button onClick={handleManualSave} style={{ background: 'none', border: 'none', cursor: 'pointer', color: savedConfirm ? 'var(--accent)' : 'var(--text-muted)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, transition: 'color 0.2s ease' }} onMouseEnter={e => { if (!savedConfirm) e.currentTarget.style.color = 'var(--text-dim)'; }} onMouseLeave={e => { if (!savedConfirm) e.currentTarget.style.color = 'var(--text-muted)'; }}>
-                      {savedConfirm ? 'Saved' : 'Save'}
-                    </button>
+                    <>
+                      <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 4px' }} />
+                      <button onClick={handleManualSave} style={{ background: 'none', border: 'none', cursor: 'pointer', color: savedConfirm ? 'var(--accent)' : 'var(--text-muted)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, transition: 'color 0.2s ease' }} onMouseEnter={e => { if (!savedConfirm) e.currentTarget.style.color = 'var(--text-dim)'; }} onMouseLeave={e => { if (!savedConfirm) e.currentTarget.style.color = 'var(--text-muted)'; }}>
+                        {savedConfirm ? 'Saved' : 'Save'}
+                      </button>
+                    </>
                   )}
-                  <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 4px' }} />
-                  <button onClick={() => setShowSafetyInfo(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, transition: 'color 0.2s ease' }} onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-dim)'; }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; }}>Safety</button>
                 </div>
               </div>
             </div>

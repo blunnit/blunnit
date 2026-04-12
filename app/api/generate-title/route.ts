@@ -19,9 +19,10 @@ export async function POST(req: NextRequest) {
   const msg = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 15,
+    system: 'You are naming a self-awareness reflection conversation. Generate a 2-3 word active title. Use active framing words from this list: Work, Focus, Reflection, Clarity, Tension, Shift, Pattern, Unpacking, Navigating, Exploring, Reckoning, Sitting With, Facing, Untangling, Reconciling, Questioning, Examining, Processing. Pick the CORE topic only. Do NOT combine multiple topics. Do NOT assume emotions not stated. Respond with ONLY the title. Maximum 3 words.',
     messages: [{
       role: 'user',
-      content: `Summarize this conversation in 2-4 words. Respond with ONLY the title. Maximum 4 words. Examples: 'Career crossroads', 'Fear of judgment', 'Relationship tension', 'Finding purpose'\n\n${combined.slice(0, 600)}`,
+      content: combined.slice(0, 600),
     }],
   });
 
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
   const supabase = createServiceClient();
   await supabase
     .from('conversations')
-    .update({ title: title || (messages[0] as string).slice(0, 30) })
+    .update({ title: title || 'New Reflection' })
     .eq('id', conversationId)
     .eq('user_id', userId);
 
