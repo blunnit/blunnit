@@ -126,18 +126,19 @@ export default function Home() {
   const fingerprintRef = useRef<string>('');
   const supabase = createClient();
 
-  // Generate fingerprint once on mount and fetch remaining anon count from server
+  // Generate fingerprint once on mount, then fetch remaining anon count
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const lang = navigator.language;
-      fingerprintRef.current = btoa(window.screen.width + 'x' + window.screen.height + '_' + tz + '_' + lang);
+      fingerprintRef.current = btoa(
+        screen.width + 'x' + screen.height + '_' +
+        Intl.DateTimeFormat().resolvedOptions().timeZone + '_' +
+        navigator.language
+      );
     } catch {
-      fingerprintRef.current = 'unknown';
+      fingerprintRef.current = 'anon_' + Date.now();
     }
-    if (!fingerprintRef.current || fingerprintRef.current === 'unknown') return;
-    fetch(`/api/anon-limits?fingerprint=${encodeURIComponent(fingerprintRef.current)}`)
+    fetch(`/api/anon-limits?fp=${encodeURIComponent(fingerprintRef.current)}`)
       .then(r => r.json())
       .then(d => { if (typeof d.remaining === 'number') setAnonRemaining(d.remaining); })
       .catch(() => {});
@@ -370,16 +371,7 @@ export default function Home() {
     const textToUse = choiceText ?? journalText;
     if (!textToUse.trim() || isReflecting) return;
     if (!user) {
-      // Always re-check server before each reflection — server is sole source of truth
-      try {
-        const limitRes = await fetch(`/api/anon-limits?fingerprint=${encodeURIComponent(fingerprintRef.current)}`);
-        const limitData = await limitRes.json();
-        if (typeof limitData.remaining === 'number') setAnonRemaining(limitData.remaining);
-        if (!limitData.allowed) { setShowAuthModal(true); return; }
-      } catch {
-        // Server unreachable: use cached remaining count
-        if (anonRemaining <= 0) { setShowAuthModal(true); return; }
-      }
+      if (anonRemaining <= 0) { setShowAuthModal(true); return; }
     }
     if (user && user.tier === 'free' && freeRemaining <= 0) { setScreen('upgrade'); return; }
     setError(null); setIsReflecting(true); setStreamedText('');
@@ -416,13 +408,11 @@ export default function Home() {
           setStreamedText(''); setIsReflecting(false);
           if (convId) saveMessage(convId, 'assistant', assistantText, reflectionLevel);
           if (!user) {
-            // POST to increment, then GET to sync accurate count from server
             fetch('/api/anon-limits', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ fingerprint: fingerprintRef.current }),
+              body: JSON.stringify({ fp: fingerprintRef.current }),
             })
-              .then(() => fetch(`/api/anon-limits?fingerprint=${encodeURIComponent(fingerprintRef.current)}`))
               .then(r => r.json())
               .then(d => { if (typeof d.remaining === 'number') setAnonRemaining(d.remaining); })
               .catch(() => setAnonRemaining(prev => Math.max(0, prev - 1)));
