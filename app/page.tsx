@@ -80,6 +80,7 @@ export default function Home() {
   const [splashFading, setSplashFading] = useState(false);
   const [splashAuthDone, setSplashAuthDone] = useState(false);
   const [splashMinDone, setSplashMinDone] = useState(false);
+  const [reflectDaysLoaded, setReflectDaysLoaded] = useState(false);
   const [reflectDays, setReflectDays] = useState(0);
   const [userThemes, setUserThemes] = useState<{ theme: string; count: number }[]>([]);
   const [welcomeToast, setWelcomeToast] = useState(false);
@@ -139,15 +140,6 @@ export default function Home() {
       .catch(() => {});
   }, []);
 
-  useEffect(() => {
-    if (user?.tier === 'paid') {
-      fetch('/api/reflect-days', { headers: { 'x-user-id': user.id } })
-        .then(r => r.json())
-        .then(d => { if (typeof d.reflect_days_count === 'number') setReflectDays(d.reflect_days_count); })
-        .catch(() => {});
-    }
-  }, [user]);
-
   // Keep sitPrefRef in sync
   useEffect(() => { sitPrefRef.current = sitPref; }, [sitPref]);
 
@@ -193,6 +185,10 @@ export default function Home() {
             }
           } catch {}
         }
+        // reflectDaysLoaded will be set by checkLimits for logged-in users
+      } else {
+        // No session — no streak data to fetch
+        setReflectDaysLoaded(true);
       }
       setAuthLoading(false);
       setSplashAuthDone(true);
@@ -219,11 +215,18 @@ export default function Home() {
       if (data.tier === 'paid') {
         if (user.tier !== 'paid') setUser(prev => prev ? { ...prev, tier: 'paid' } : null);
         setFreeRemaining(Infinity);
+        // Fetch streak data for paid users before releasing splash
+        try {
+          const dRes = await fetch('/api/reflect-days', { headers: { 'x-user-id': user.id } });
+          const dData = await dRes.json();
+          if (typeof dData.reflect_days_count === 'number') setReflectDays(dData.reflect_days_count);
+        } catch {}
       } else {
         setFreeRemaining(data.remaining ?? FREE_WEEKLY_LIMIT);
       }
     } catch {}
     setLimitsLoaded(true);
+    setReflectDaysLoaded(true);
   }, [user]);
 
   const loadConversations = useCallback(async () => {
@@ -365,12 +368,12 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (splashAuthDone && splashMinDone) {
+    if (splashAuthDone && splashMinDone && reflectDaysLoaded) {
       setSplashFading(true);
       const t = setTimeout(() => setShowSplash(false), 650);
       return () => clearTimeout(t);
     }
-  }, [splashAuthDone, splashMinDone]);
+  }, [splashAuthDone, splashMinDone, reflectDaysLoaded]);
 
   useEffect(() => {
     const onPop = () => {
