@@ -854,7 +854,7 @@ export default function Home() {
             <div style={{ overflowY: 'auto', height: isDesktop ? 'calc(100vh - 28px)' : '100vh', paddingTop: (isDesktop ? 0 : 'calc(env(safe-area-inset-top) + 56px)') as any, paddingBottom: 160 }}>
 
             {/* Header — inside scroll container so it scrolls with content */}
-            <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
+            <div style={{ marginBottom: 16, paddingTop: 20, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
               <button onClick={goHome} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: 13, fontFamily: F, letterSpacing: 3, textTransform: 'uppercase', padding: 0, transition: 'color 0.2s ease' }} onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; }}>← Home</button>
             </div>
 
