@@ -88,8 +88,14 @@ export default function Home() {
   const [softCapShown, setSoftCapShown] = useState(false);
   const [savedConfirm, setSavedConfirm] = useState(false);
   const [limitsLoaded, setLimitsLoaded] = useState(false);
-  const [showDailyPrompt, setShowDailyPrompt] = useState(true);
-  const [showHowItWorksPref, setShowHowItWorksPref] = useState(true);
+  const [showDailyPrompt, setShowDailyPrompt] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    try { return localStorage.getItem('blunnit_pref_daily_prompt') !== 'false'; } catch { return true; }
+  });
+  const [showHowItWorksPref, setShowHowItWorksPref] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    try { return localStorage.getItem('blunnit_pref_how_it_works') !== 'false'; } catch { return true; }
+  });
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [showNameModal, setShowNameModal] = useState(false);
   const [nameInput, setNameInput] = useState('');
@@ -229,8 +235,14 @@ export default function Home() {
     try {
       const res = await fetch('/api/preferences', { headers: { 'x-user-id': user.id } });
       const data = await res.json();
-      if (typeof data.show_daily_prompt === 'boolean') setShowDailyPrompt(data.show_daily_prompt);
-      if (typeof data.show_how_it_works === 'boolean') setShowHowItWorksPref(data.show_how_it_works);
+      if (typeof data.show_daily_prompt === 'boolean') {
+        setShowDailyPrompt(data.show_daily_prompt);
+        try { localStorage.setItem('blunnit_pref_daily_prompt', String(data.show_daily_prompt)); } catch {}
+      }
+      if (typeof data.show_how_it_works === 'boolean') {
+        setShowHowItWorksPref(data.show_how_it_works);
+        try { localStorage.setItem('blunnit_pref_how_it_works', String(data.show_how_it_works)); } catch {}
+      }
     } catch {}
   }, [user]);
 
@@ -311,7 +323,11 @@ export default function Home() {
 
   // Reset preferences when user logs out
   useEffect(() => {
-    if (!user) { setShowDailyPrompt(true); setShowHowItWorksPref(true); }
+    if (!user) {
+      setShowDailyPrompt(true);
+      setShowHowItWorksPref(true);
+      try { localStorage.removeItem('blunnit_pref_daily_prompt'); localStorage.removeItem('blunnit_pref_how_it_works'); } catch {}
+    }
   }, [user]);
 
   useEffect(() => { if (!authLoading && user) { checkLimits(); loadConversations(); loadThemes(); loadPreferences(); } }, [authLoading, user, checkLimits, loadConversations, loadThemes, loadPreferences]);
@@ -560,6 +576,7 @@ export default function Home() {
     if (!user) return;
     const newVal = !showDailyPrompt;
     setShowDailyPrompt(newVal);
+    try { localStorage.setItem('blunnit_pref_daily_prompt', String(newVal)); } catch {}
     fetch('/api/preferences', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'x-user-id': user.id },
@@ -571,6 +588,7 @@ export default function Home() {
     if (!user) return;
     const newVal = !showHowItWorksPref;
     setShowHowItWorksPref(newVal);
+    try { localStorage.setItem('blunnit_pref_how_it_works', String(newVal)); } catch {}
     fetch('/api/preferences', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'x-user-id': user.id },
