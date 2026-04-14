@@ -1075,9 +1075,9 @@ export default function Home() {
           </div>
 
           {/* Back button — fixed overlay, doesn't affect flex layout */}
-          <div style={{ position: 'fixed', top: (isDesktop ? 28 : 'calc(env(safe-area-inset-top) + 56px)') as any, left: isDesktop && sidebarOpen ? 280 : 0, right: 0, zIndex: 15, opacity: backBtnVisible ? 1 : 0, transition: 'opacity 250ms ease', pointerEvents: backBtnVisible ? 'auto' : 'none' }}>
+          <div style={{ position: 'fixed', top: (isDesktop ? 28 : 'calc(env(safe-area-inset-top) + 56px)') as any, left: isDesktop && sidebarOpen ? 280 : 0, right: 0, zIndex: 50, background: '#000000', opacity: backBtnVisible ? 1 : 0, transition: 'opacity 250ms ease', pointerEvents: backBtnVisible ? 'auto' : 'none' }}>
             <div style={{ maxWidth: isDesktop ? 800 : 520, margin: '0 auto', padding: `0 ${isDesktop ? 40 : 28}px` }}>
-              <div style={{ paddingTop: 20, paddingBottom: 12, borderBottom: '1px solid var(--border)', background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(6px)' }}>
+              <div style={{ paddingTop: 20, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
                 <button onClick={goHome} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: 13, fontFamily: F, letterSpacing: 3, textTransform: 'uppercase', padding: 0, transition: 'color 0.2s ease' }} onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; }}>← Home</button>
               </div>
             </div>
