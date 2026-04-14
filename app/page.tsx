@@ -320,6 +320,12 @@ export default function Home() {
   }, [screen]);
 
   useEffect(() => {
+    if (screen === 'home') {
+      window.scrollTo(0, 0);
+    }
+  }, [screen]);
+
+  useEffect(() => {
     if (screen === 'mirror') {
       window.history.pushState({ blunnit: 'mirror' }, '');
     }
