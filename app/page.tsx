@@ -194,7 +194,7 @@ export default function Home() {
       }
       setAuthLoading(false);
       setSplashFading(true);
-      setTimeout(() => setShowSplash(false), 350);
+      setTimeout(() => setShowSplash(false), 500);
     };
     checkAuth();
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -614,9 +614,7 @@ export default function Home() {
 
       {/* Initial loading splash — covers auth-state jank on first paint */}
       {showSplash && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: splashFading ? 0 : 1, transition: 'opacity 300ms ease', pointerEvents: splashFading ? 'none' : 'auto' }}>
-          <img src="/logo.png" alt="" width={36} height={36} style={{ objectFit: 'contain', opacity: 0.7 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-        </div>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#000', opacity: splashFading ? 0 : 1, transition: 'opacity 450ms ease', pointerEvents: splashFading ? 'none' : 'auto' }} />
       )}
 
       {/* Grain */}
@@ -772,7 +770,7 @@ export default function Home() {
 
         {/* HOME */}
         {screen === 'home' && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100vh', textAlign: 'center', animation: 'fadeIn 0.45s ease', paddingTop: (isDesktop ? 28 : 'calc(env(safe-area-inset-top) + 60px)') as any, paddingBottom: 40 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100vh', textAlign: 'center', paddingTop: (isDesktop ? 28 : 'calc(env(safe-area-inset-top) + 60px)') as any, paddingBottom: 40 }}>
 
             <div style={{ paddingTop: isDesktop ? 60 : 20, paddingBottom: isDesktop ? 40 : 32, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
               <img src="/logo.png" alt="" width={isDesktop ? 50 : 40} height={isDesktop ? 50 : 40} style={{ objectFit: 'contain', marginBottom: 12 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
@@ -784,7 +782,7 @@ export default function Home() {
             {(authLoading || (!!user && !limitsLoaded)) ? (
               <div style={{ width: '100%', minHeight: 58, marginBottom: 24 }} />
             ) : (
-              <div style={{ width: '100%', animation: 'fadeIn 0.4s ease', transition: 'opacity 0.3s ease' }}>
+              <div style={{ width: '100%' }}>
                 {tier !== 'paid' && (
                   <div style={{ width: '100%', padding: '14px 18px', background: 'var(--surface)', border: '1px solid var(--border)', marginBottom: 24, textAlign: 'left' }}>
                     {tier === 'anonymous' ? (
