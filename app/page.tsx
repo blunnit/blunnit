@@ -99,7 +99,10 @@ export default function Home() {
     try { return localStorage.getItem('blunnit_sidebar_open') !== 'false'; } catch { return true; }
   });
 
+  const [backBtnVisible, setBackBtnVisible] = useState(true);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const lastScrollTopRef = useRef(0);
   const pendingChoiceRef = useRef<string | null>(null);
   const sitPrefRef = useRef(sitPref);
   const userMsgCountRef = useRef(0);
@@ -319,6 +322,13 @@ export default function Home() {
   useEffect(() => {
     if (screen === 'mirror') {
       window.history.pushState({ blunnit: 'mirror' }, '');
+    }
+  }, [screen]);
+
+  useEffect(() => {
+    if (screen === 'mirror') {
+      setBackBtnVisible(true);
+      lastScrollTopRef.current = 0;
     }
   }, [screen]);
 
@@ -851,12 +861,21 @@ export default function Home() {
           <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', paddingTop: isDesktop ? 28 : 0, animation: 'fadeIn 0.6s ease' }}>
 
             {/* Messages area — on mobile starts at top:0 and fills 100vh; fixed bar (z-50) covers the top portion so content clips behind it cleanly */}
-            <div style={{ overflowY: 'auto', height: isDesktop ? 'calc(100vh - 28px)' : '100vh', paddingTop: (isDesktop ? 0 : 'calc(env(safe-area-inset-top) + 56px)') as any, paddingBottom: 160 }}>
-
-            {/* Header — inside scroll container so it scrolls with content */}
-            <div style={{ marginBottom: 16, paddingTop: 20, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
-              <button onClick={goHome} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: 13, fontFamily: F, letterSpacing: 3, textTransform: 'uppercase', padding: 0, transition: 'color 0.2s ease' }} onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; }}>← Home</button>
-            </div>
+            <div
+              onScroll={(e) => {
+                const el = e.currentTarget;
+                const current = el.scrollTop;
+                const prev = lastScrollTopRef.current;
+                if (current - prev > 8) {
+                  setBackBtnVisible(false);
+                  lastScrollTopRef.current = current;
+                } else if (prev - current > 8) {
+                  setBackBtnVisible(true);
+                  lastScrollTopRef.current = current;
+                }
+              }}
+              style={{ overflowY: 'auto', height: isDesktop ? 'calc(100vh - 28px)' : '100vh', paddingTop: (isDesktop ? '52px' : 'calc(env(safe-area-inset-top) + 108px)') as any, paddingBottom: 160 }}
+            >
 
             {/* Remaining in mirror */}
             {tier !== 'paid' && remaining > 0 && remaining <= 3 && (
@@ -961,6 +980,15 @@ export default function Home() {
               Powered by BLUNNIT
             </p>
             <div ref={messagesEndRef} />
+            </div>
+          </div>
+
+          {/* Sticky back button — fixed, scroll-direction aware */}
+          <div style={{ position: 'fixed', top: (isDesktop ? 28 : 'calc(env(safe-area-inset-top) + 56px)') as any, left: isDesktop && sidebarOpen ? 280 : 0, right: 0, zIndex: 15, transform: backBtnVisible ? 'translateY(0)' : 'translateY(-120%)', transition: 'transform 250ms ease', pointerEvents: backBtnVisible ? 'auto' : 'none' }}>
+            <div style={{ maxWidth: isDesktop ? 800 : 520, margin: '0 auto', padding: `0 ${isDesktop ? 40 : 28}px` }}>
+              <div style={{ paddingTop: 20, paddingBottom: 12, borderBottom: '1px solid var(--border)', background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(6px)' }}>
+                <button onClick={goHome} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: 13, fontFamily: F, letterSpacing: 3, textTransform: 'uppercase', padding: 0, transition: 'color 0.2s ease' }} onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; }}>← Home</button>
+              </div>
             </div>
           </div>
 
