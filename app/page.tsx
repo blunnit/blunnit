@@ -14,7 +14,6 @@ type SavedConvo = { id: string; title: string; updated_at: string; confrontation
 
 const ANON_DAILY_LIMIT = 5;
 const FREE_WEEKLY_LIMIT = 10;
-const DAILY_SOFT_CAP = 15;
 const F = "'Cormorant Garamond', Georgia, serif";
 
 
@@ -90,7 +89,6 @@ export default function Home() {
   const [activeSitMsgIdx, setActiveSitMsgIdx] = useState<number | null>(null);
   const [sitCountdown, setSitCountdown] = useState(0);
   const [presenceCount, setPresenceCount] = useState(0);
-  const [softCapShown, setSoftCapShown] = useState(false);
   const [savedConfirm, setSavedConfirm] = useState(false);
   const [limitsLoaded, setLimitsLoaded] = useState(false);
   const [showDailyPrompt, setShowDailyPrompt] = useState(() => {
@@ -397,7 +395,6 @@ export default function Home() {
           setConversationId(null);
           setActiveSitMsgIdx(null);
           setSitCountdown(0);
-          setSoftCapShown(false);
           userMsgCountRef.current = 0;
           titleRegenFiredRef.current = false;
           return 'home';
@@ -481,8 +478,7 @@ export default function Home() {
               const idx = next.length - 1;
               setTimeout(() => { setActiveSitMsgIdx(idx); setSitCountdown(60); }, 100);
             }
-            const dailyCount = incrementDailyReflectCount();
-            if (dailyCount === DAILY_SOFT_CAP) { setSoftCapShown(true); }
+            incrementDailyReflectCount();
             return next;
           });
           setStreamedText(''); setIsReflecting(false);
@@ -555,7 +551,7 @@ export default function Home() {
       }).catch(() => {});
     }
     setMessages([]); setJournalText(''); setStreamedText(''); setError(null); setConversationId(null);
-    setActiveSitMsgIdx(null); setSitCountdown(0); setSoftCapShown(false);
+    setActiveSitMsgIdx(null); setSitCountdown(0);
     userMsgCountRef.current = 0; titleRegenFiredRef.current = false;
     setScreen('home');
   };
@@ -1035,14 +1031,6 @@ export default function Home() {
             )}
 
             {error && <div style={{ padding: 16, border: '1px solid rgba(255,107,107,0.2)', background: 'rgba(255,107,107,0.03)', marginBottom: 28 }}><p style={{ fontSize: 13, color: 'var(--error)', margin: 0, fontFamily: F }}>{error}</p></div>}
-
-            {softCapShown && (
-              <div style={{ marginBottom: 28, padding: '14px 18px', border: '1px solid var(--border)', textAlign: 'center' }}>
-                <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: 0, fontFamily: F, fontWeight: 300, lineHeight: 1.7, fontStyle: 'italic' }}>
-                  You've reflected deeply today. The mirror works best when you give yourself time to process between sessions.
-                </p>
-              </div>
-            )}
 
             <p style={{ fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-muted)', textAlign: 'center', margin: '40px 0 20px 0', fontFamily: F, opacity: 0.4 }}>
               Powered by BLUNNIT
