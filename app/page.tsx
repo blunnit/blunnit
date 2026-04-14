@@ -76,6 +76,8 @@ export default function Home() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [savedConvos, setSavedConvos] = useState<SavedConvo[]>([]);
   const [showSidePanel, setShowSidePanel] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
+  const [splashFading, setSplashFading] = useState(false);
   const [reflectDays, setReflectDays] = useState(0);
   const [userThemes, setUserThemes] = useState<{ theme: string; count: number }[]>([]);
   const [welcomeToast, setWelcomeToast] = useState(false);
@@ -191,6 +193,8 @@ export default function Home() {
         }
       }
       setAuthLoading(false);
+      setSplashFading(true);
+      setTimeout(() => setShowSplash(false), 350);
     };
     checkAuth();
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -599,10 +603,22 @@ export default function Home() {
   const remaining = getRemaining();
   const tier = getTier();
 
-  if (screen === 'upgrade') return <UpgradePage onBack={() => setScreen('home')} />;
+  if (screen === 'upgrade') return (
+    <div style={{ animation: 'fadeIn 0.3s ease both' }}>
+      <UpgradePage onBack={() => setScreen('home')} />
+    </div>
+  );
 
   return (
     <div style={{ minHeight: '100vh', position: 'relative', fontFamily: F }}>
+
+      {/* Initial loading splash — covers auth-state jank on first paint */}
+      {showSplash && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: splashFading ? 0 : 1, transition: 'opacity 300ms ease', pointerEvents: splashFading ? 'none' : 'auto' }}>
+          <img src="/logo.png" alt="" width={36} height={36} style={{ objectFit: 'contain', opacity: 0.7 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+        </div>
+      )}
+
       {/* Grain */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 1, opacity: 0.03, background: `url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")` }} />
 
@@ -733,8 +749,8 @@ export default function Home() {
 
         {/* DISCLAIMER */}
         {screen === 'disclaimer' && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', textAlign: 'center', animation: 'fadeIn 0.8s ease', padding: '40px 0' }}>
-            <img src="/logo.png" alt="" style={{ width: 32, height: 'auto', marginBottom: 20 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', textAlign: 'center', animation: 'fadeIn 0.45s ease', padding: '40px 0' }}>
+            <img src="/logo.png" alt="" width={32} height={32} style={{ objectFit: 'contain', marginBottom: 20 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
             <h1 style={{ fontSize: 28, fontWeight: 400, letterSpacing: 6, margin: '0 0 6px 0', fontFamily: F, textTransform: 'uppercase' }}>The Blunnit Mirror</h1>
             <p style={{ fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--text-muted)', margin: '0 0 40px 0', fontFamily: F }}>Pierce The Illusion</p>
             <div style={{ textAlign: 'left', width: '100%', border: '1px solid var(--border)', padding: 24, marginBottom: 24 }}>
@@ -756,10 +772,10 @@ export default function Home() {
 
         {/* HOME */}
         {screen === 'home' && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100vh', textAlign: 'center', animation: 'fadeIn 0.8s ease', paddingTop: (isDesktop ? 28 : 'calc(env(safe-area-inset-top) + 60px)') as any, paddingBottom: 40 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100vh', textAlign: 'center', animation: 'fadeIn 0.45s ease', paddingTop: (isDesktop ? 28 : 'calc(env(safe-area-inset-top) + 60px)') as any, paddingBottom: 40 }}>
 
             <div style={{ paddingTop: isDesktop ? 60 : 20, paddingBottom: isDesktop ? 40 : 32, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-              <img src="/logo.png" alt="" style={{ width: isDesktop ? 50 : 40, height: 'auto', marginBottom: 12 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              <img src="/logo.png" alt="" width={isDesktop ? 50 : 40} height={isDesktop ? 50 : 40} style={{ objectFit: 'contain', marginBottom: 12 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
               <h1 style={{ fontSize: isDesktop ? 48 : 32, fontWeight: 400, letterSpacing: isDesktop ? 10 : 8, margin: '0 0 12px 0', fontFamily: F, textTransform: 'uppercase', textAlign: 'center' }}>The Blunnit Mirror</h1>
               <p style={{ fontSize: 11, letterSpacing: 5, textTransform: 'uppercase', color: 'var(--text-muted)', margin: 0, fontFamily: F }}>Pierce The Illusion</p>
             </div>
@@ -882,7 +898,7 @@ export default function Home() {
 
         {/* MIRROR */}
         {screen === 'mirror' && (<>
-          <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', paddingTop: isDesktop ? 28 : 0, animation: 'fadeIn 0.6s ease' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', paddingTop: isDesktop ? 28 : 0, animation: 'fadeIn 0.4s ease' }}>
 
             {/* Messages area — on mobile starts at top:0 and fills 100vh; fixed bar (z-50) covers the top portion so content clips behind it cleanly */}
             <div
@@ -908,7 +924,7 @@ export default function Home() {
 
             {/* Messages */}
             {messages.map((msg, i) => (
-              <div key={i} style={{ marginBottom: 28 }}>
+              <div key={i} style={{ marginBottom: 28, animation: 'messageFade 0.2s ease both' }}>
                 <p style={{ fontSize: 12, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 8px 0', fontFamily: F, display: 'flex', alignItems: 'center', gap: 6 }}>
                   {msg.role === 'user' ? 'You' : 'The Mirror'}
                 </p>
@@ -975,7 +991,7 @@ export default function Home() {
             ))}
 
             {streamedText && (
-              <div style={{ marginBottom: 28 }}>
+              <div style={{ marginBottom: 28, animation: 'messageFade 0.15s ease both' }}>
                 <p style={{ fontSize: 12, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 8px 0', fontFamily: F, display: 'flex', alignItems: 'center', gap: 6 }}>The Mirror</p>
                 <p style={{ fontSize: 18, lineHeight: 1.7, color: 'var(--text)', fontStyle: 'italic', fontWeight: 300, margin: 0, borderLeft: '2px solid var(--border-hover)', paddingLeft: 20, fontFamily: F }}>
                   {streamedText}<span style={{ display: 'inline-block', width: 2, height: 18, background: 'var(--accent)', marginLeft: 2, animation: 'blink 1s step-end infinite', verticalAlign: 'text-bottom' }} />
@@ -984,7 +1000,7 @@ export default function Home() {
             )}
 
             {isReflecting && !streamedText && (
-              <div style={{ marginBottom: 28 }}>
+              <div style={{ marginBottom: 28, animation: 'messageFade 0.15s ease both' }}>
                 <p style={{ fontSize: 12, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 8px 0', fontFamily: F, display: 'flex', alignItems: 'center', gap: 6 }}>The Mirror</p>
                 <div style={{ display: 'flex', gap: 6, paddingLeft: 22, paddingTop: 8 }}>{[0, 1, 2].map((j) => (<div key={j} style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--text-muted)', animation: `pulse 1.4s ease-in-out ${j * 0.2}s infinite` }} />))}</div>
               </div>
