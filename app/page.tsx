@@ -764,7 +764,7 @@ export default function Home() {
 
         {/* DISCLAIMER */}
         {screen === 'disclaimer' && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', textAlign: 'center', animation: 'fadeIn 0.45s ease', padding: '40px 0' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', textAlign: 'center', animation: 'fadeIn 0.45s ease', paddingTop: 'calc(env(safe-area-inset-top) + 60px)' as any, paddingBottom: 40 }}>
             <img src="/logo.png" alt="" width={84} height={84} style={{ objectFit: 'contain', marginBottom: 20 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
             <h1 style={{ fontSize: 28, fontWeight: 400, letterSpacing: 6, margin: '0 0 6px 0', fontFamily: F, textTransform: 'uppercase' }}>The Blunnit Mirror</h1>
             <p style={{ fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--text-muted)', margin: '0 0 40px 0', fontFamily: F }}>Pierce The Illusion</p>
