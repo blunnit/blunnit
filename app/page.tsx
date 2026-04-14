@@ -867,15 +867,15 @@ export default function Home() {
 
         {/* MIRROR */}
         {screen === 'mirror' && (
-          <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', paddingTop: (isDesktop ? 28 : 'calc(env(safe-area-inset-top) + 60px)') as any, animation: 'fadeIn 0.6s ease' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', paddingTop: isDesktop ? 28 : 0, animation: 'fadeIn 0.6s ease' }}>
 
-            {/* Header */}
-            <div style={{ marginBottom: 32, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
+            {/* Messages area — on mobile starts at top:0 and fills 100vh; fixed bar (z-50) covers the top portion so content clips behind it cleanly */}
+            <div style={{ overflowY: 'auto', height: isDesktop ? 'calc(100vh - 28px)' : '100vh', paddingTop: (isDesktop ? 0 : 'calc(env(safe-area-inset-top) + 56px)') as any, paddingBottom: 160 }}>
+
+            {/* Header — inside scroll container so it scrolls with content */}
+            <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
               <button onClick={goHome} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: 13, fontFamily: F, letterSpacing: 3, textTransform: 'uppercase', padding: 0, transition: 'color 0.2s ease' }} onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; }}>← Home</button>
             </div>
-
-            {/* Messages area */}
-            <div style={{ overflowY: 'auto', height: isDesktop ? 'calc(100vh - 120px)' : 'calc(100vh - 160px)', paddingBottom: 160 }}>
 
             {/* Remaining in mirror */}
             {tier !== 'paid' && remaining > 0 && remaining <= 3 && (
