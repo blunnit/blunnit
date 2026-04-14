@@ -110,7 +110,10 @@ export default function Home() {
     try { return localStorage.getItem('blunnit_sidebar_open') !== 'false'; } catch { return true; }
   });
 
+  const [backBtnVisible, setBackBtnVisible] = useState(true);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const lastScrollTopRef = useRef(0);
   const pendingChoiceRef = useRef<string | null>(null);
   const sitPrefRef = useRef(sitPref);
   const userMsgCountRef = useRef(0);
@@ -352,6 +355,12 @@ export default function Home() {
     }
   }, [screen]);
 
+  useEffect(() => {
+    if (screen === 'mirror') {
+      setBackBtnVisible(true);
+      lastScrollTopRef.current = 0;
+    }
+  }, [screen]);
 
   useEffect(() => {
     const t = setTimeout(() => setSplashMinDone(true), 900);
@@ -628,8 +637,8 @@ export default function Home() {
       {/* Grain */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 1, opacity: 0.03, background: `url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")` }} />
 
-      {/* Fixed side panel bar - hidden on disclaimer screen */}
-      {screen !== 'disclaimer' && (
+      {/* Fixed auth bar - hidden on disclaimer screen */}
+      {screen !== 'disclaimer' && !isDesktop && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, paddingTop: 'calc(env(safe-area-inset-top) + 10px)' as any, paddingBottom: 10, paddingLeft: 28, paddingRight: 28, background: '#000000', borderBottom: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
@@ -908,13 +917,20 @@ export default function Home() {
 
             {/* Messages area — on mobile starts at top:0 and fills 100vh; fixed bar (z-50) covers the top portion so content clips behind it cleanly */}
             <div
-              style={{ flex: 1, overflowY: 'auto', paddingTop: (isDesktop ? '60px' : 'calc(env(safe-area-inset-top) + 60px)') as any, paddingBottom: 16 }}
+              onScroll={(e) => {
+                const el = e.currentTarget;
+                const current = el.scrollTop;
+                const isNearTop = current < window.innerHeight;
+                const isScrollingUp = current < lastScrollTopRef.current;
+                if (isNearTop) {
+                  setBackBtnVisible(true);
+                } else {
+                  setBackBtnVisible(isScrollingUp);
+                }
+                lastScrollTopRef.current = current;
+              }}
+              style={{ flex: 1, overflowY: 'auto', paddingTop: (isDesktop ? '100px' : 'calc(env(safe-area-inset-top) + 140px)') as any, paddingBottom: 16 }}
             >
-
-            {/* Home button — in scroll flow, naturally visible at top */}
-            <div style={{ paddingBottom: 20, marginBottom: 8, borderBottom: '1px solid var(--border)' }}>
-              <button onClick={goHome} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: 13, fontFamily: F, letterSpacing: 3, textTransform: 'uppercase', padding: 0, transition: 'color 0.2s ease' }} onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; }}>← Home</button>
-            </div>
 
             {/* Remaining in mirror */}
             {tier !== 'paid' && remaining > 0 && remaining <= 3 && (
@@ -1058,6 +1074,14 @@ export default function Home() {
 
           </div>
 
+          {/* Back button — fixed overlay, doesn't affect flex layout */}
+          <div style={{ position: 'fixed', top: (isDesktop ? 28 : 'calc(env(safe-area-inset-top) + 56px)') as any, left: isDesktop && sidebarOpen ? 280 : 0, right: 0, zIndex: 50, background: '#000000', opacity: backBtnVisible ? 1 : 0, transition: 'opacity 250ms ease', pointerEvents: backBtnVisible ? 'auto' : 'none' }}>
+            <div style={{ maxWidth: isDesktop ? 800 : 520, margin: '0 auto', padding: `0 ${isDesktop ? 40 : 28}px` }}>
+              <div style={{ paddingTop: 20, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
+                <button onClick={goHome} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: 13, fontFamily: F, letterSpacing: 3, textTransform: 'uppercase', padding: 0, transition: 'color 0.2s ease' }} onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; }}>← Home</button>
+              </div>
+            </div>
+          </div>
         </>
         )}
       </div>
