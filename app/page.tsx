@@ -404,7 +404,7 @@ export default function Home() {
     userMsgCountRef.current += 1;
     const currentMsgCount = userMsgCountRef.current;
     try {
-      const response = await fetch('/api/reflect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: updatedMessages.map((m) => ({ role: m.role, content: m.content })), confrontation: reflectionLevel, userThemes, tier: user ? user.tier : 'anonymous' }) });
+      const response = await fetch('/api/reflect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: updatedMessages.map((m) => ({ role: m.role, content: m.content })), confrontation: reflectionLevel, userThemes, tier: user ? user.tier : 'anonymous', userId: user?.id }) });
       if (!response.ok) { const errData = await response.json().catch(() => ({})); throw new Error(errData?.error || `Error: ${response.status}`); }
       const data = await response.json();
       const rawAssistantText = data.reflection || 'The mirror is silent. Try again.';
@@ -487,6 +487,13 @@ export default function Home() {
   const handleKeyDown = (e: React.KeyboardEvent) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleReflect(); } };
 
   const goHome = () => {
+    if (user && conversationId && messages.length >= 2) {
+      fetch('/api/summarize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversation_id: conversationId, user_id: user.id }),
+      }).catch(() => {});
+    }
     setMessages([]); setJournalText(''); setStreamedText(''); setError(null); setConversationId(null);
     setActiveSitMsgIdx(null); setSitCountdown(0); setSoftCapShown(false);
     userMsgCountRef.current = 0; titleRegenFiredRef.current = false;

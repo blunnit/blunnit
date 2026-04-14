@@ -9,7 +9,7 @@ const anthropic = new Anthropic({
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, confrontation, userThemes, tier } = await req.json();
+    const { messages, confrontation, userThemes, tier, userId } = await req.json();
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json({ error: 'Messages required' }, { status: 400 });
@@ -27,6 +27,24 @@ export async function POST(req: NextRequest) {
         .map((t: { theme: string; count: number }) => `${t.theme} (seen ${t.count} time${t.count !== 1 ? 's' : ''})`)
         .join(', ');
       systemPrompt += `\n\nThis user's recurring themes based on past reflections: ${themeList}. Use this context to ask sharper questions and notice patterns, but never announce that you're reading from stored data. Let it feel like natural awareness.`;
+    }
+
+    if (userId) {
+      const supabase = createServiceClient();
+      const { data: summaries } = await supabase
+        .from('conversation_summaries')
+        .select('summary')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (summaries && summaries.length > 0) {
+        const memoryBlock = [...summaries]
+          .reverse()
+          .map((s: { summary: string }) => `- ${s.summary}`)
+          .join('\n');
+        systemPrompt += `\n\nYou have memory of this person's past reflections. Here is what you know about them from previous sessions:\n\n${memoryBlock}\n\nUse this context to recognise patterns, notice what keeps coming up, and go deeper — but never announce that you're reading from stored data. Let it feel like natural awareness.`;
+      }
     }
 
     const response = await anthropic.messages.create({
