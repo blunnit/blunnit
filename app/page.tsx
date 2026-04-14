@@ -929,7 +929,7 @@ export default function Home() {
                 }
                 lastScrollTopRef.current = current;
               }}
-              style={{ overflowY: 'auto', height: isDesktop ? 'calc(100vh - 28px)' : '100vh', paddingTop: (isDesktop ? '52px' : 'calc(env(safe-area-inset-top) + 108px)') as any, paddingBottom: 160 }}
+              style={{ overflowY: 'auto', height: isDesktop ? 'calc(100vh - 28px)' : '100vh', paddingTop: (isDesktop ? '52px' : 'calc(env(safe-area-inset-top) + 108px)') as any, paddingBottom: 100 }}
             >
 
             {/* Remaining in mirror */}
@@ -1047,26 +1047,37 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Bottom input — outside the fadeIn wrapper; a CSS transform on a parent traps position:fixed children, causing the pop-in */}
-          <div style={{ position: 'fixed', bottom: isDesktop ? 0 : keyboardOffset, left: isDesktop && sidebarOpen ? 280 : 0, right: 0, zIndex: 10, background: 'linear-gradient(transparent, var(--bg) 20%)', padding: `40px ${isDesktop ? 40 : 28}px`, paddingBottom: isDesktop ? 28 : 'max(28px, env(safe-area-inset-bottom))' as any, willChange: 'transform' }}>
-              <div style={{ maxWidth: isDesktop ? 720 : 520, margin: '0 auto' }}>
-
-                {/* Input row */}
-                <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
-                  {!user && anonRemaining <= 0 ? (
-                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '14px 16px', background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => setShowAuthModal(true)}>
-                      <span style={{ fontSize: 13, color: 'var(--text-muted)', fontFamily: F, fontWeight: 300 }}>Create an account to continue reflecting</span>
-                    </div>
-                  ) : (
-                    <>
-                      <textarea value={journalText} onChange={(e) => setJournalText(e.target.value)} onKeyDown={handleKeyDown} placeholder="What are you bringing to the Mirror?" rows={3} disabled={isReflecting} style={{ flex: 1, alignSelf: 'stretch', display: 'block', background: '#111111', border: '1px solid #222222', borderRadius: 8, color: 'var(--text)', fontSize: 16, lineHeight: 1.4, padding: '14px 16px', fontFamily: F, fontWeight: 300, resize: 'none', outline: 'none', boxShadow: 'none', WebkitAppearance: 'none', boxSizing: 'border-box', transition: 'border-color 0.3s', minHeight: 48, verticalAlign: 'top', opacity: isReflecting ? 0.5 : 1 }} onFocus={(e) => { e.target.style.borderColor = '#333333'; if (!isDesktop) { setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 300); } }} onBlur={(e) => { e.target.style.borderColor = '#222222'; }} />
-                      <button onClick={handleReflect} disabled={!journalText.trim() || isReflecting} style={{ padding: '14px 20px', background: journalText.trim() && !isReflecting ? 'var(--btn-bg)' : '#111111', color: journalText.trim() && !isReflecting ? 'var(--btn-text)' : 'var(--text-muted)', border: `1px solid ${journalText.trim() && !isReflecting ? 'var(--btn-bg)' : '#222222'}`, fontSize: 13, letterSpacing: 2, textTransform: 'uppercase', cursor: journalText.trim() && !isReflecting ? 'pointer' : 'default', fontFamily: F, fontWeight: 500, transition: 'all 0.3s ease', whiteSpace: 'nowrap' }}>{isReflecting ? '...' : 'Reflect'}</button>
-                    </>
-                  )}
+          {/* Bottom input */}
+          <div style={{ position: 'fixed', bottom: isDesktop ? 0 : keyboardOffset, left: isDesktop && sidebarOpen ? 280 : 0, right: 0, paddingBottom: 'env(safe-area-inset-bottom)' as any, background: '#000000', zIndex: 40 }}>
+            <div style={{ display: 'flex', gap: 8, padding: '12px 16px', alignItems: 'stretch' }}>
+              {!user && anonRemaining <= 0 ? (
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '14px 16px', background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => setShowAuthModal(true)}>
+                  <span style={{ fontSize: 13, color: 'var(--text-muted)', fontFamily: F, fontWeight: 300 }}>Create an account to continue reflecting</span>
                 </div>
-
-              </div>
+              ) : (
+                <>
+                  <textarea
+                    value={journalText}
+                    onChange={(e) => setJournalText(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Go deeper..."
+                    rows={1}
+                    disabled={isReflecting}
+                    style={{ flex: 1, background: '#111111', border: '1px solid #222222', borderRadius: 8, padding: '14px 16px', fontSize: 16, lineHeight: '1.4', color: '#e0e0e0', outline: 'none', WebkitAppearance: 'none' as any, resize: 'none', minHeight: 48, maxHeight: 120, boxSizing: 'border-box', display: 'block', margin: 0, verticalAlign: 'top', fontFamily: F }}
+                    onFocus={(e) => { e.target.style.borderColor = '#333333'; }}
+                    onBlur={(e) => { e.target.style.borderColor = '#222222'; }}
+                  />
+                  <button
+                    onClick={handleReflect}
+                    disabled={!journalText.trim() || isReflecting}
+                    style={{ background: journalText.trim() && !isReflecting ? 'var(--btn-bg)' : '#111111', border: `1px solid ${journalText.trim() && !isReflecting ? 'var(--btn-bg)' : '#222222'}`, borderRadius: 8, padding: '14px 20px', color: journalText.trim() && !isReflecting ? 'var(--btn-text)' : 'var(--text-muted)', fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', cursor: journalText.trim() && !isReflecting ? 'pointer' : 'default', whiteSpace: 'nowrap', fontFamily: F, transition: 'all 0.3s ease' }}
+                  >
+                    {isReflecting ? '...' : 'Reflect'}
+                  </button>
+                </>
+              )}
             </div>
+          </div>
         </>
         )}
       </div>
