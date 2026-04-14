@@ -869,7 +869,7 @@ export default function Home() {
         )}
 
         {/* MIRROR */}
-        {screen === 'mirror' && (
+        {screen === 'mirror' && (<>
           <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', paddingTop: isDesktop ? 28 : 0, animation: 'fadeIn 0.6s ease' }}>
 
             {/* Messages area — on mobile starts at top:0 and fills 100vh; fixed bar (z-50) covers the top portion so content clips behind it cleanly */}
@@ -984,9 +984,10 @@ export default function Home() {
             </p>
             <div ref={messagesEndRef} />
             </div>
+          </div>
 
-            {/* Bottom input */}
-            <div style={{ position: 'fixed', bottom: isDesktop ? 0 : keyboardOffset, left: isDesktop && sidebarOpen ? 280 : 0, right: 0, zIndex: 10, background: 'linear-gradient(transparent, var(--bg) 20%)', padding: `40px ${isDesktop ? 40 : 28}px`, paddingBottom: isDesktop ? 28 : 'max(28px, env(safe-area-inset-bottom))' as any }}>
+          {/* Bottom input — outside the fadeIn wrapper; a CSS transform on a parent traps position:fixed children, causing the pop-in */}
+          <div style={{ position: 'fixed', bottom: isDesktop ? 0 : keyboardOffset, left: isDesktop && sidebarOpen ? 280 : 0, right: 0, zIndex: 10, background: 'linear-gradient(transparent, var(--bg) 20%)', padding: `40px ${isDesktop ? 40 : 28}px`, paddingBottom: isDesktop ? 28 : 'max(28px, env(safe-area-inset-bottom))' as any, willChange: 'transform' }}>
               <div style={{ maxWidth: isDesktop ? 720 : 520, margin: '0 auto' }}>
 
                 {/* Controls row: confrontation dial */}
@@ -1015,7 +1016,7 @@ export default function Home() {
 
               </div>
             </div>
-          </div>
+        </>
         )}
       </div>
       </div>
