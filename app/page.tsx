@@ -929,7 +929,7 @@ export default function Home() {
                 }
                 lastScrollTopRef.current = current;
               }}
-              style={{ flex: 1, overflowY: 'auto', paddingTop: (isDesktop ? '52px' : 'calc(env(safe-area-inset-top) + 108px)') as any, paddingBottom: 16 }}
+              style={{ flex: 1, overflowY: 'auto', paddingTop: (isDesktop ? '100px' : 'calc(env(safe-area-inset-top) + 140px)') as any, paddingBottom: 16 }}
             >
 
             {/* Remaining in mirror */}
