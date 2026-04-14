@@ -103,6 +103,7 @@ export default function Home() {
   });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const isUserScrolledUp = useRef(false);
   const pendingChoiceRef = useRef<string | null>(null);
   const sitPrefRef = useRef(sitPref);
   const userMsgCountRef = useRef(0);
@@ -315,7 +316,20 @@ export default function Home() {
   }, [user]);
 
   useEffect(() => { if (!authLoading && user) { checkLimits(); loadConversations(); loadThemes(); loadPreferences(); } }, [authLoading, user, checkLimits, loadConversations, loadThemes, loadPreferences]);
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, streamedText]);
+  useEffect(() => {
+    const handleScroll = () => {
+      const nearBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - 100;
+      isUserScrolledUp.current = !nearBottom;
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    if (!isUserScrolledUp.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, streamedText]);
 
   useEffect(() => {
     document.title = screen === 'mirror' ? 'The Blunnit Mirror' : 'The Blunnit Mirror — Pierce The Illusion';
@@ -397,6 +411,7 @@ export default function Home() {
     setError(null); setIsReflecting(true); setStreamedText('');
     const userMessage: Message = { role: 'user', content: textToUse };
     const updatedMessages = [...messages, userMessage];
+    isUserScrolledUp.current = false;
     setMessages(updatedMessages);
     const reflectionLevel = confrontation;
     setJournalText(''); setScreen('mirror');
