@@ -929,7 +929,7 @@ export default function Home() {
                 }
                 lastScrollTopRef.current = current;
               }}
-              style={{ flex: 1, overflowY: 'auto', paddingTop: (isDesktop ? '100px' : 'calc(env(safe-area-inset-top) + 140px)') as any, paddingBottom: 16 }}
+              style={{ flex: 1, overflowY: 'auto', paddingTop: (isDesktop ? '100px' : 'calc(env(safe-area-inset-top) + 164px)') as any, paddingBottom: 16 }}
             >
 
             {/* Remaining in mirror */}
@@ -1074,10 +1074,15 @@ export default function Home() {
 
           </div>
 
+          {/* Desktop-only: black cover from top of screen to where back button starts, prevents text showing above it */}
+          {isDesktop && (
+            <div style={{ position: 'fixed', top: 0, left: isDesktop && sidebarOpen ? 280 : 0, right: 0, height: 28, background: '#000000', zIndex: 45, pointerEvents: 'none' }} />
+          )}
+
           {/* Back button — fixed overlay, doesn't affect flex layout */}
           <div style={{ position: 'fixed', top: (isDesktop ? 28 : 'calc(env(safe-area-inset-top) + 56px)') as any, left: isDesktop && sidebarOpen ? 280 : 0, right: 0, zIndex: 50, background: '#000000', opacity: backBtnVisible ? 1 : 0, transition: 'opacity 250ms ease', pointerEvents: backBtnVisible ? 'auto' : 'none' }}>
             <div style={{ maxWidth: isDesktop ? 800 : 520, margin: '0 auto', padding: `0 ${isDesktop ? 40 : 28}px` }}>
-              <div style={{ paddingTop: 20, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
+              <div style={{ paddingTop: 20, paddingBottom: isDesktop ? 12 : 32, borderBottom: '1px solid var(--border)' }}>
                 <button onClick={goHome} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: 13, fontFamily: F, letterSpacing: 3, textTransform: 'uppercase', padding: 0, transition: 'color 0.2s ease' }} onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; }}>← Home</button>
               </div>
             </div>
