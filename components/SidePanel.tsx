@@ -246,7 +246,10 @@ export default function SidePanel({
         transform: open ? 'translateX(0)' : 'translateX(-100%)',
         transition: 'transform 0.3s ease',
         display: 'flex', flexDirection: 'column',
-        padding: '24px 20px',
+        paddingTop: 'calc(env(safe-area-inset-top) + 24px)' as any,
+        paddingBottom: 24,
+        paddingLeft: 20,
+        paddingRight: 20,
       }}>
 
         {/* Logo — desktop only, main view only */}

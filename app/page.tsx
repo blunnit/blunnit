@@ -580,7 +580,7 @@ export default function Home() {
 
       {/* Fixed auth bar - hidden on disclaimer screen */}
       {screen !== 'disclaimer' && !isDesktop && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 10, padding: '10px 28px', background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, paddingTop: 'calc(env(safe-area-inset-top) + 10px)' as any, paddingBottom: 10, paddingLeft: 28, paddingRight: 28, background: '#000000', borderBottom: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               {!authLoading && user && (
@@ -728,7 +728,7 @@ export default function Home() {
 
         {/* HOME */}
         {screen === 'home' && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100vh', textAlign: 'center', animation: 'fadeIn 0.8s ease', paddingTop: isDesktop ? 28 : 60, paddingBottom: 40 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100vh', textAlign: 'center', animation: 'fadeIn 0.8s ease', paddingTop: (isDesktop ? 28 : 'calc(env(safe-area-inset-top) + 60px)') as any, paddingBottom: 40 }}>
 
             <div style={{ paddingTop: isDesktop ? 60 : 20, paddingBottom: isDesktop ? 40 : 32, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
               <img src="/logo.png" alt="" style={{ width: isDesktop ? 50 : 40, height: 'auto', marginBottom: 12 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
@@ -867,7 +867,7 @@ export default function Home() {
 
         {/* MIRROR */}
         {screen === 'mirror' && (
-          <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', paddingTop: isDesktop ? 28 : 72, animation: 'fadeIn 0.6s ease' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', paddingTop: (isDesktop ? 28 : 'calc(env(safe-area-inset-top) + 60px)') as any, animation: 'fadeIn 0.6s ease' }}>
 
             {/* Header */}
             <div style={{ marginBottom: 32, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
