@@ -514,7 +514,8 @@ export default function Home() {
               const firstMsg = userMsgs[0]?.content?.toLowerCase().trim() || '';
               const startsWithGreeting = /^(hi+|hello+|hey+)[.!?]?$/.test(firstMsg);
               const triggerAt = startsWithGreeting ? 4 : 3;
-              if (currentMsgCount === triggerAt) {
+              console.log('Title check:', { currentMsgCount, triggerAt, titleFired: titleRegenFiredRef.current, convId });
+              if (currentMsgCount >= triggerAt) {
                 titleRegenFiredRef.current = true;
                 const msgsForTitle = (startsWithGreeting ? userMsgs.slice(1, 4) : userMsgs.slice(0, 3)).map(m => m.content);
                 fetch('/api/generate-title', {
