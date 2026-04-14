@@ -78,6 +78,8 @@ export default function Home() {
   const [showSidePanel, setShowSidePanel] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
   const [splashFading, setSplashFading] = useState(false);
+  const [splashAuthDone, setSplashAuthDone] = useState(false);
+  const [splashMinDone, setSplashMinDone] = useState(false);
   const [reflectDays, setReflectDays] = useState(0);
   const [userThemes, setUserThemes] = useState<{ theme: string; count: number }[]>([]);
   const [welcomeToast, setWelcomeToast] = useState(false);
@@ -193,8 +195,7 @@ export default function Home() {
         }
       }
       setAuthLoading(false);
-      setSplashFading(true);
-      setTimeout(() => setShowSplash(false), 500);
+      setSplashAuthDone(true);
     };
     checkAuth();
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -357,6 +358,19 @@ export default function Home() {
       lastScrollTopRef.current = 0;
     }
   }, [screen]);
+
+  useEffect(() => {
+    const t = setTimeout(() => setSplashMinDone(true), 900);
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    if (splashAuthDone && splashMinDone) {
+      setSplashFading(true);
+      const t = setTimeout(() => setShowSplash(false), 650);
+      return () => clearTimeout(t);
+    }
+  }, [splashAuthDone, splashMinDone]);
 
   useEffect(() => {
     const onPop = () => {
@@ -614,7 +628,7 @@ export default function Home() {
 
       {/* Initial loading splash — covers auth-state jank on first paint */}
       {showSplash && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#000', opacity: splashFading ? 0 : 1, transition: 'opacity 450ms ease', pointerEvents: splashFading ? 'none' : 'auto' }} />
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#000', opacity: splashFading ? 0 : 1, transition: 'opacity 600ms ease', pointerEvents: splashFading ? 'none' : 'auto' }} />
       )}
 
       {/* Grain */}
@@ -748,7 +762,7 @@ export default function Home() {
         {/* DISCLAIMER */}
         {screen === 'disclaimer' && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', textAlign: 'center', animation: 'fadeIn 0.45s ease', padding: '40px 0' }}>
-            <img src="/logo.png" alt="" width={32} height={32} style={{ objectFit: 'contain', marginBottom: 20 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            <img src="/logo.png" alt="" width={84} height={84} style={{ objectFit: 'contain', marginBottom: 20 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
             <h1 style={{ fontSize: 28, fontWeight: 400, letterSpacing: 6, margin: '0 0 6px 0', fontFamily: F, textTransform: 'uppercase' }}>The Blunnit Mirror</h1>
             <p style={{ fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--text-muted)', margin: '0 0 40px 0', fontFamily: F }}>Pierce The Illusion</p>
             <div style={{ textAlign: 'left', width: '100%', border: '1px solid var(--border)', padding: 24, marginBottom: 24 }}>
@@ -773,8 +787,8 @@ export default function Home() {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100vh', textAlign: 'center', paddingTop: (isDesktop ? 28 : 'calc(env(safe-area-inset-top) + 60px)') as any, paddingBottom: 40 }}>
 
             <div style={{ paddingTop: isDesktop ? 60 : 20, paddingBottom: isDesktop ? 40 : 32, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-              <img src="/logo.png" alt="" width={isDesktop ? 50 : 40} height={isDesktop ? 50 : 40} style={{ objectFit: 'contain', marginBottom: 12 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-              <h1 style={{ fontSize: isDesktop ? 48 : 32, fontWeight: 400, letterSpacing: isDesktop ? 10 : 8, margin: '0 0 12px 0', fontFamily: F, textTransform: 'uppercase', textAlign: 'center' }}>The Blunnit Mirror</h1>
+              <img src="/logo.png" alt="" width={isDesktop ? 80 : 72} height={isDesktop ? 80 : 72} style={{ objectFit: 'contain', marginBottom: 16 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              <h1 style={{ fontSize: isDesktop ? 48 : 32, fontWeight: 400, letterSpacing: isDesktop ? 10 : 8, margin: '0 0 16px 0', fontFamily: F, textTransform: 'uppercase', textAlign: 'center' }}>The Blunnit Mirror</h1>
               <p style={{ fontSize: 11, letterSpacing: 5, textTransform: 'uppercase', color: 'var(--text-muted)', margin: 0, fontFamily: F }}>Pierce The Illusion</p>
             </div>
 
