@@ -19,8 +19,3 @@ export const TIERS = {
   },
 } as const;
 
-export const CONFRONTATION_LEVELS = [
-  { key: 'gentle', label: 'Gentle', desc: 'A soft mirror. Space to breathe.' },
-  { key: 'clear', label: 'Clear', desc: 'Honest reflection. What you might not see.' },
-  { key: 'piercing', label: 'Piercing', desc: 'The illusion stripped bare.' },
-] as const;

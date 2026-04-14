@@ -3,14 +3,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase-browser';
 import { getDailyPrompt } from '@/lib/daily-prompts';
-import { CONFRONTATION_LEVELS } from '@/lib/constants';
 import AuthModal from '@/components/AuthModal';
 import UpgradePage from '@/components/UpgradePage';
 import SidePanel from '@/components/SidePanel';
-import { ConfrontationIcon } from '@/components/ConfrontationIcon';
 
 type Signal = { type: 'sit' | 'choice' | 'mirror'; data?: string | string[] };
-type Message = { role: 'user' | 'assistant'; content: string; level?: string; signal?: Signal };
+type Message = { role: 'user' | 'assistant'; content: string; signal?: Signal };
 type UserState = { id: string; email: string; tier: string } | null;
 type SavedConvo = { id: string; title: string; updated_at: string; confrontation_level: string };
 
@@ -64,7 +62,6 @@ export default function Home() {
     return 'disclaimer';
   });
   const [journalText, setJournalText] = useState('');
-  const [confrontation, setConfrontation] = useState('clear');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isReflecting, setIsReflecting] = useState(false);
   const [streamedText, setStreamedText] = useState('');
@@ -103,7 +100,6 @@ export default function Home() {
   });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const streamingLevelRef = useRef<string>('clear');
   const pendingChoiceRef = useRef<string | null>(null);
   const sitPrefRef = useRef(sitPref);
   const userMsgCountRef = useRef(0);
@@ -249,11 +245,10 @@ export default function Home() {
       const res = await fetch(`/api/conversations?id=${convoId}`, { headers: { 'x-user-id': user?.id || '' } });
       const data = await res.json();
       if (data.messages) {
-        setMessages(data.messages.map((m: any) => ({ role: m.role, content: m.content, level: m.confrontation_level })));
+        setMessages(data.messages.map((m: any) => ({ role: m.role, content: m.content })));
         setConversationId(convoId);
         userMsgCountRef.current = data.messages.filter((m: any) => m.role === 'user').length;
         titleRegenFiredRef.current = true;
-        setConfrontation(data.conversation?.confrontation_level || 'clear');
         setScreen('mirror');
         setTimeout(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'instant' }); }, 150);
       }
@@ -350,15 +345,15 @@ export default function Home() {
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
-  const saveMessage = async (convId: string, role: string, content: string, level?: string) => {
+  const saveMessage = async (convId: string, role: string, content: string) => {
     if (!user) return;
-    await fetch('/api/conversations', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-user-id': user.id }, body: JSON.stringify({ action: 'message', conversationId: convId, role, content, confrontationLevel: level }) });
+    await fetch('/api/conversations', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-user-id': user.id }, body: JSON.stringify({ action: 'message', conversationId: convId, role, content }) });
   };
 
   const getOrCreateConversation = async (_firstMsgText?: string): Promise<string | null> => {
     if (!user) return null;
     if (conversationId) return conversationId;
-    const res = await fetch('/api/conversations', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-user-id': user.id }, body: JSON.stringify({ action: 'create', confrontation, title: 'New Reflection' }) });
+    const res = await fetch('/api/conversations', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-user-id': user.id }, body: JSON.stringify({ action: 'create', title: 'New Reflection' }) });
     const data = await res.json();
     if (data.conversation?.id) {
       setConversationId(data.conversation.id);
@@ -398,8 +393,6 @@ export default function Home() {
     const userMessage: Message = { role: 'user', content: textToUse };
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
-    const reflectionLevel = confrontation;
-    streamingLevelRef.current = reflectionLevel;
     setJournalText(''); setScreen('mirror');
     setTimeout(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'instant' }); }, 100);
     const convId = await getOrCreateConversation(textToUse);
@@ -407,7 +400,7 @@ export default function Home() {
     userMsgCountRef.current += 1;
     const currentMsgCount = userMsgCountRef.current;
     try {
-      const response = await fetch('/api/reflect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: updatedMessages.map((m) => ({ role: m.role, content: m.content })), confrontation: reflectionLevel, userThemes, tier: user ? user.tier : 'anonymous', userId: user?.id }) });
+      const response = await fetch('/api/reflect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: updatedMessages.map((m) => ({ role: m.role, content: m.content })), userThemes, tier: user ? user.tier : 'anonymous', userId: user?.id }) });
       if (!response.ok) { const errData = await response.json().catch(() => ({})); throw new Error(errData?.error || `Error: ${response.status}`); }
       const data = await response.json();
       const rawAssistantText = data.reflection || 'The mirror is silent. Try again.';
@@ -417,7 +410,7 @@ export default function Home() {
       const typeWriter = () => {
         if (i < assistantText.length) { setStreamedText(assistantText.slice(0, i + 1)); i++; setTimeout(typeWriter, 18 + Math.random() * 12); }
         else {
-          const newMsg: Message = { role: 'assistant', content: assistantText, level: reflectionLevel, signal: signal || undefined };
+          const newMsg: Message = { role: 'assistant', content: assistantText, signal: signal || undefined };
           setMessages((prev) => {
             const next = [...prev, newMsg];
             if (signal?.type === 'sit' && sitPrefRef.current === 'hold') {
@@ -429,7 +422,7 @@ export default function Home() {
             return next;
           });
           setStreamedText(''); setIsReflecting(false);
-          if (convId) saveMessage(convId, 'assistant', assistantText, reflectionLevel);
+          if (convId) saveMessage(convId, 'assistant', assistantText);
           if (!user && !anonIncrementedRef.current) {
             anonIncrementedRef.current = true;
             fetch('/api/anon-limits', {
@@ -479,7 +472,7 @@ export default function Home() {
       };
       typeWriter();
     } catch { setError('The mirror is momentarily unavailable. Please try again in a moment.'); setIsReflecting(false); }
-  }, [journalText, messages, confrontation, isReflecting, user, anonRemaining, freeRemaining, conversationId, userThemes]);
+  }, [journalText, messages, isReflecting, user, anonRemaining, freeRemaining, conversationId, userThemes]);
 
   const sendChoice = (text: string) => {
     if (isReflecting) return;
@@ -568,8 +561,6 @@ export default function Home() {
       body: JSON.stringify({ show_how_it_works: newVal }),
     }).catch(() => {});
   };
-
-  const getLevelInfo = (key: string) => CONFRONTATION_LEVELS.find((l) => l.key === key);
 
   const remaining = getRemaining();
   const tier = getTier();
@@ -807,7 +798,6 @@ export default function Home() {
               {showHowItWorks && (
                 <div style={{ padding: '4px 18px 16px', textAlign: 'left' }}>
                   <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: '0 0 8px 0', fontFamily: F, fontWeight: 300, lineHeight: 1.7 }}>Write what's real. The mirror works best with honesty.</p>
-                  <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: '0 0 8px 0', fontFamily: F, fontWeight: 300, lineHeight: 1.7 }}>Choose your level. Gentle holds space. Piercing strips the frame.</p>
                   <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: '0 0 8px 0', fontFamily: F, fontWeight: 300, lineHeight: 1.7 }}>Reflect. The AI mirrors back what you might not be seeing.</p>
                   <div style={{ borderTop: '1px solid var(--border)', margin: '10px 0' }} />
                   <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: 0, fontFamily: F, fontWeight: 300, lineHeight: 1.7 }}>Be thorough. The more honestly and completely you write, the more precise the reflection. Short entries get surface-level mirrors.</p>
@@ -820,25 +810,13 @@ export default function Home() {
               <div style={{ width: '100%', borderTop: '1px solid var(--border)', marginBottom: 32 }} />
             )}
 
-            {/* Confrontation Dial */}
-            <div style={{ width: '100%', marginBottom: 32 }}>
-              <p style={{ fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 14px 0', fontFamily: F }}>How real do you want it?</p>
-              <div style={{ display: 'flex', gap: 1 }}>
-                {CONFRONTATION_LEVELS.map((level) => (
-                  <button key={level.key} onClick={() => setConfrontation(level.key)} style={{ flex: 1, padding: '18px 8px', cursor: 'pointer', background: confrontation === level.key ? 'var(--surface)' : 'transparent', border: `1px solid ${confrontation === level.key ? 'var(--border-hover)' : 'var(--border)'}`, color: confrontation === level.key ? 'var(--text)' : 'var(--text-dim)', transition: 'all 0.3s ease', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, fontFamily: F }}>
-                    <ConfrontationIcon level={level.key} size={22} />
-                    <span style={{ fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', fontFamily: F, fontWeight: 500 }}>{level.label}</span>
-                    <span style={{ fontSize: 11, color: confrontation === level.key ? 'var(--text-dim)' : 'var(--text-muted)', fontFamily: F, lineHeight: 1.4, fontWeight: 300 }}>{level.desc}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Onboarding hint for new logged-in users */}
-            {user && savedConvos.length === 0 && messages.length === 0 && (
+            {/* Welcome / returning greeting */}
+            {user && messages.length === 0 && (
               <div style={{ width: '100%', padding: '14px 18px', border: '1px solid var(--border)', marginBottom: 16, textAlign: 'left' }}>
                 <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: 0, fontFamily: F, fontWeight: 300, lineHeight: 1.8 }}>
-                  This is your mirror. Write what's actually going on, not the polished version. The AI will reflect back what you might not be seeing.
+                  {savedConvos.length === 0
+                    ? "Welcome. What\u2019s on your mind that you think could be looked at more closely?"
+                    : "Welcome back. Anything come up that\u2019s worth a closer look together?"}
                 </p>
               </div>
             )}
@@ -853,7 +831,7 @@ export default function Home() {
                 </div>
               ) : (
                 <>
-                  <textarea value={journalText} onChange={(e) => setJournalText(e.target.value)} onKeyDown={handleKeyDown} placeholder="What's actually going on? The mirror works best when you bring what's real..." rows={5} style={{ width: '100%', background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 16, lineHeight: 1.8, padding: 20, fontFamily: F, fontWeight: 300, resize: 'vertical', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.3s' }} onFocus={(e) => { e.target.style.borderColor = 'var(--border-hover)'; }} onBlur={(e) => { e.target.style.borderColor = 'var(--border)'; }} />
+                  <textarea value={journalText} onChange={(e) => setJournalText(e.target.value)} onKeyDown={handleKeyDown} placeholder="What are you bringing to the Mirror?" rows={5} style={{ width: '100%', background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 16, lineHeight: 1.8, padding: 20, fontFamily: F, fontWeight: 300, resize: 'vertical', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.3s' }} onFocus={(e) => { e.target.style.borderColor = 'var(--border-hover)'; }} onBlur={(e) => { e.target.style.borderColor = 'var(--border)'; }} />
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
                     <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: F }}>{journalText.length > 0 ? `${journalText.length} characters` : 'Shift+Enter for new line'}</span>
                     <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: F }}>Enter to reflect</span>
@@ -889,7 +867,7 @@ export default function Home() {
             {messages.map((msg, i) => (
               <div key={i} style={{ marginBottom: 28 }}>
                 <p style={{ fontSize: 12, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 8px 0', fontFamily: F, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {msg.role === 'user' ? 'You' : (<>The Mirror{msg.level && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><ConfrontationIcon level={msg.level} size={13} /><span style={{ fontSize: 10, letterSpacing: 2 }}>{getLevelInfo(msg.level)?.label}</span></span>}</>)}
+                  {msg.role === 'user' ? 'You' : 'The Mirror'}
                 </p>
                 <p style={{ fontSize: msg.role === 'assistant' ? 18 : 15, lineHeight: 1.7, color: msg.role === 'assistant' ? 'var(--text)' : 'var(--text-dim)', fontStyle: msg.role === 'assistant' ? 'italic' : 'normal', fontWeight: 300, margin: 0, borderLeft: msg.role === 'assistant' ? '2px solid var(--border)' : 'none', paddingLeft: msg.role === 'assistant' ? 20 : 0, fontFamily: F }}>{msg.content}</p>
 
@@ -955,7 +933,7 @@ export default function Home() {
 
             {streamedText && (
               <div style={{ marginBottom: 28 }}>
-                <p style={{ fontSize: 12, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 8px 0', fontFamily: F, display: 'flex', alignItems: 'center', gap: 6 }}>The Mirror<ConfrontationIcon level={streamingLevelRef.current} size={13} /><span style={{ fontSize: 10, letterSpacing: 2 }}>{getLevelInfo(streamingLevelRef.current)?.label}</span></p>
+                <p style={{ fontSize: 12, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 8px 0', fontFamily: F, display: 'flex', alignItems: 'center', gap: 6 }}>The Mirror</p>
                 <p style={{ fontSize: 18, lineHeight: 1.7, color: 'var(--text)', fontStyle: 'italic', fontWeight: 300, margin: 0, borderLeft: '2px solid var(--border-hover)', paddingLeft: 20, fontFamily: F }}>
                   {streamedText}<span style={{ display: 'inline-block', width: 2, height: 18, background: 'var(--accent)', marginLeft: 2, animation: 'blink 1s step-end infinite', verticalAlign: 'text-bottom' }} />
                 </p>
@@ -964,7 +942,7 @@ export default function Home() {
 
             {isReflecting && !streamedText && (
               <div style={{ marginBottom: 28 }}>
-                <p style={{ fontSize: 12, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 8px 0', fontFamily: F, display: 'flex', alignItems: 'center', gap: 6 }}>The Mirror<ConfrontationIcon level={streamingLevelRef.current} size={13} /><span style={{ fontSize: 10, letterSpacing: 2 }}>{getLevelInfo(streamingLevelRef.current)?.label}</span></p>
+                <p style={{ fontSize: 12, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 8px 0', fontFamily: F, display: 'flex', alignItems: 'center', gap: 6 }}>The Mirror</p>
                 <div style={{ display: 'flex', gap: 6, paddingLeft: 22, paddingTop: 8 }}>{[0, 1, 2].map((j) => (<div key={j} style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--text-muted)', animation: `pulse 1.4s ease-in-out ${j * 0.2}s infinite` }} />))}</div>
               </div>
             )}
@@ -990,16 +968,6 @@ export default function Home() {
           <div style={{ position: 'fixed', bottom: isDesktop ? 0 : keyboardOffset, left: isDesktop && sidebarOpen ? 280 : 0, right: 0, zIndex: 10, background: 'linear-gradient(transparent, var(--bg) 20%)', padding: `40px ${isDesktop ? 40 : 28}px`, paddingBottom: isDesktop ? 28 : 'max(28px, env(safe-area-inset-bottom))' as any, willChange: 'transform' }}>
               <div style={{ maxWidth: isDesktop ? 720 : 520, margin: '0 auto' }}>
 
-                {/* Controls row: confrontation dial */}
-                <div style={{ display: 'flex', gap: 2, marginBottom: 8 }}>
-                  {CONFRONTATION_LEVELS.map((level) => (
-                    <button key={level.key} onClick={() => setConfrontation(level.key)} title={`${level.label}: ${level.desc}`} style={{ background: confrontation === level.key ? 'var(--surface)' : 'transparent', border: `1px solid ${confrontation === level.key ? 'var(--border-hover)' : 'transparent'}`, color: confrontation === level.key ? 'var(--text)' : 'var(--text-muted)', cursor: 'pointer', padding: '5px 8px', fontSize: 13, transition: 'all 0.2s ease', display: 'flex', alignItems: 'center', gap: 4, fontFamily: F }}>
-                      <ConfrontationIcon level={level.key} size={15} />
-                      {confrontation === level.key && <span style={{ fontSize: 10, letterSpacing: 1, textTransform: 'uppercase' }}>{level.label}</span>}
-                    </button>
-                  ))}
-                </div>
-
                 {/* Input row */}
                 <div style={{ display: 'flex', gap: 8 }}>
                   {!user && anonRemaining <= 0 ? (
@@ -1008,7 +976,7 @@ export default function Home() {
                     </div>
                   ) : (
                     <>
-                      <textarea value={journalText} onChange={(e) => setJournalText(e.target.value)} onKeyDown={handleKeyDown} placeholder="Go deeper..." rows={isDesktop ? 3 : 2} disabled={isReflecting} style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 15, lineHeight: 1.6, padding: '14px 16px', fontFamily: F, fontWeight: 300, resize: 'none', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.3s', opacity: isReflecting ? 0.5 : 1 }} onFocus={(e) => { e.target.style.borderColor = 'var(--border-hover)'; if (!isDesktop) { setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 300); } }} onBlur={(e) => { e.target.style.borderColor = 'var(--border)'; }} />
+                      <textarea value={journalText} onChange={(e) => setJournalText(e.target.value)} onKeyDown={handleKeyDown} placeholder="What are you bringing to the Mirror?" rows={isDesktop ? 3 : 2} disabled={isReflecting} style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 15, lineHeight: 1.6, padding: '14px 16px', fontFamily: F, fontWeight: 300, resize: 'none', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.3s', opacity: isReflecting ? 0.5 : 1 }} onFocus={(e) => { e.target.style.borderColor = 'var(--border-hover)'; if (!isDesktop) { setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 300); } }} onBlur={(e) => { e.target.style.borderColor = 'var(--border)'; }} />
                       <button onClick={handleReflect} disabled={!journalText.trim() || isReflecting} style={{ padding: '14px 20px', background: journalText.trim() && !isReflecting ? 'var(--btn-bg)' : 'var(--surface)', color: journalText.trim() && !isReflecting ? 'var(--btn-text)' : 'var(--text-muted)', border: `1px solid ${journalText.trim() && !isReflecting ? 'var(--btn-bg)' : 'var(--border)'}`, fontSize: 13, letterSpacing: 2, textTransform: 'uppercase', cursor: journalText.trim() && !isReflecting ? 'pointer' : 'default', fontFamily: F, fontWeight: 500, transition: 'all 0.3s ease', whiteSpace: 'nowrap' }}>↵</button>
                     </>
                   )}

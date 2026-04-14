@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { SYSTEM_PROMPT_BASE, CONFRONTATION_PROMPTS } from '@/lib/system-prompt';
+import { SYSTEM_PROMPT_BASE } from '@/lib/system-prompt';
 import { createServiceClient } from '@/lib/supabase-server';
 
 const anthropic = new Anthropic({
@@ -9,14 +9,13 @@ const anthropic = new Anthropic({
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, confrontation, userThemes, tier, userId } = await req.json();
+    const { messages, userThemes, tier, userId } = await req.json();
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json({ error: 'Messages required' }, { status: 400 });
     }
 
-    const level = confrontation || 'clear';
-    let systemPrompt = SYSTEM_PROMPT_BASE + (CONFRONTATION_PROMPTS[level] || CONFRONTATION_PROMPTS.clear);
+    let systemPrompt = SYSTEM_PROMPT_BASE;
 
     if (tier !== 'paid') {
       systemPrompt += '\n\nDo not append any engagement signal tags ([SIT], [CHOICE], [MIRROR]) to your response. This user does not have access to those features.';
@@ -72,7 +71,6 @@ export async function POST(req: NextRequest) {
       supabase.from('training_data').insert({
         user_input: lastUserMsg.content,
         ai_response: text,
-        confrontation_level: level,
       }).then(({ error }) => {
         if (error) console.error('[training_data] insert error:', error.message);
       });
