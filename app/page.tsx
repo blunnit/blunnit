@@ -315,6 +315,16 @@ export default function Home() {
     return () => window.removeEventListener('resize', check);
   }, []);
 
+  // --vh custom property for iOS viewport height stability
+  useEffect(() => {
+    const setVh = () => {
+      document.documentElement.style.setProperty('--vh', window.innerHeight * 0.01 + 'px');
+    };
+    setVh();
+    window.addEventListener('resize', setVh);
+    return () => window.removeEventListener('resize', setVh);
+  }, []);
+
   // Persist sidebar preference
   useEffect(() => {
     try { localStorage.setItem('blunnit_sidebar_open', String(sidebarOpen)); } catch {}
@@ -914,7 +924,7 @@ export default function Home() {
 
         {/* MIRROR */}
         {screen === 'mirror' && (<>
-          <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(var(--vh, 1vh) * 100)', overflow: 'hidden' }}>
 
             {/* Messages area — on mobile starts at top:0 and fills 100vh; fixed bar (z-50) covers the top portion so content clips behind it cleanly */}
             <div
@@ -932,7 +942,7 @@ export default function Home() {
                 }
                 lastScrollTopRef.current = scrollTop;
               }}
-              style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'none', paddingTop: (isDesktop ? '100px' : 'calc(env(safe-area-inset-top) + 164px)') as any, paddingBottom: 150 }}
+              style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'none', paddingTop: (isDesktop ? '100px' : 'calc(env(safe-area-inset-top) + 164px)') as any, paddingBottom: 16 }}
             >
 
             {/* Remaining in mirror */}
@@ -1040,42 +1050,42 @@ export default function Home() {
             <div ref={messagesEndRef} />
             </div>
 
-          </div>
-
-          {/* Input bar — position: fixed, always anchored to bottom */}
-          <div style={{ position: 'fixed', bottom: 0, left: isDesktop && sidebarOpen ? 280 : 0, right: 0, background: '#000000', paddingBottom: 'env(safe-area-inset-bottom)' as any, zIndex: 40 }}>
-            <div style={{ display: 'flex', gap: 8, padding: '12px 16px', alignItems: 'stretch' }}>
-              {!user && anonRemaining <= 0 ? (
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '14px 16px', background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => setShowAuthModal(true)}>
-                  <span style={{ fontSize: 13, color: 'var(--text-muted)', fontFamily: F, fontWeight: 300 }}>Create an account to continue reflecting</span>
-                </div>
-              ) : (
-                <>
-                  <textarea
-                    ref={textareaRef}
-                    value={journalText}
-                    onChange={(e) => setJournalText(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Go deeper..."
-                    rows={1}
-                    disabled={isReflecting}
-                    autoComplete="off"
-                    autoCorrect="off"
-                    spellCheck={false}
-                    style={{ flex: 1, background: '#111111', border: '1px solid #222222', borderRadius: 8, padding: '14px 16px', fontSize: 16, lineHeight: '1.4', color: '#e0e0e0', outline: 'none', WebkitAppearance: 'none' as any, WebkitTextSizeAdjust: '100%' as any, resize: 'none', minHeight: 48, maxHeight: 120, boxSizing: 'border-box', display: 'block', margin: 0, verticalAlign: 'top', fontFamily: F }}
-                    onFocus={(e) => { e.target.style.borderColor = '#333333'; setTimeout(() => { textareaRef.current?.scrollIntoView({ behavior: 'instant' as any, block: 'nearest' }); }, 300); }}
-                    onBlur={(e) => { e.target.style.borderColor = '#222222'; }}
-                  />
-                  <button
-                    onClick={handleReflect}
-                    disabled={!journalText.trim() || isReflecting}
-                    style={{ background: journalText.trim() && !isReflecting ? 'var(--btn-bg)' : '#111111', border: `1px solid ${journalText.trim() && !isReflecting ? 'var(--btn-bg)' : '#222222'}`, borderRadius: 8, padding: '14px 20px', color: journalText.trim() && !isReflecting ? 'var(--btn-text)' : 'var(--text-muted)', fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', cursor: journalText.trim() && !isReflecting ? 'pointer' : 'default', whiteSpace: 'nowrap', fontFamily: F, transition: 'all 0.3s ease' }}
-                  >
-                    {isReflecting ? '...' : 'Reflect'}
-                  </button>
-                </>
-              )}
+            {/* Input bar — in-flow flex child, fixes iOS cursor rendering bug */}
+            <div style={{ flexShrink: 0, background: '#000000', paddingBottom: 'env(safe-area-inset-bottom)' as any, marginLeft: isDesktop ? -40 : -28, marginRight: isDesktop ? -40 : -28 }}>
+              <div style={{ display: 'flex', gap: 8, padding: isDesktop ? '12px 40px' : '12px 28px', alignItems: 'stretch' }}>
+                {!user && anonRemaining <= 0 ? (
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '14px 16px', background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => setShowAuthModal(true)}>
+                    <span style={{ fontSize: 13, color: 'var(--text-muted)', fontFamily: F, fontWeight: 300 }}>Create an account to continue reflecting</span>
+                  </div>
+                ) : (
+                  <>
+                    <textarea
+                      ref={textareaRef}
+                      value={journalText}
+                      onChange={(e) => setJournalText(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      placeholder="Go deeper..."
+                      rows={1}
+                      disabled={isReflecting}
+                      autoComplete="off"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      style={{ flex: 1, background: '#111111', border: '1px solid #222222', borderRadius: 8, padding: '14px 16px', fontSize: 16, lineHeight: '1.4', color: '#e0e0e0', outline: 'none', WebkitAppearance: 'none' as any, WebkitTextSizeAdjust: '100%' as any, resize: 'none', minHeight: 48, maxHeight: 120, boxSizing: 'border-box', display: 'block', margin: 0, verticalAlign: 'top', fontFamily: F }}
+                      onFocus={(e) => { e.target.style.borderColor = '#333333'; }}
+                      onBlur={(e) => { e.target.style.borderColor = '#222222'; }}
+                    />
+                    <button
+                      onClick={handleReflect}
+                      disabled={!journalText.trim() || isReflecting}
+                      style={{ background: journalText.trim() && !isReflecting ? 'var(--btn-bg)' : '#111111', border: `1px solid ${journalText.trim() && !isReflecting ? 'var(--btn-bg)' : '#222222'}`, borderRadius: 8, padding: '14px 20px', color: journalText.trim() && !isReflecting ? 'var(--btn-text)' : 'var(--text-muted)', fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', cursor: journalText.trim() && !isReflecting ? 'pointer' : 'default', whiteSpace: 'nowrap', fontFamily: F, transition: 'all 0.3s ease' }}
+                    >
+                      {isReflecting ? '...' : 'Reflect'}
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
+
           </div>
 
           {/* Desktop-only: black cover from top of screen to where back button starts, prevents text showing above it */}
