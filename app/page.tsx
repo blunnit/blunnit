@@ -320,7 +320,31 @@ export default function Home() {
     if (!userHasScrolledUp.current && scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
     }
-  }, [messages, streamedText]);
+  }, [messages.length]);
+
+  useEffect(() => {
+    if (!userHasScrolledUp.current && scrollContainerRef.current) {
+      requestAnimationFrame(() => {
+        if (!userHasScrolledUp.current && scrollContainerRef.current) {
+          scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+        }
+      });
+    }
+  }, [streamedText]);
+
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const onTouch = () => {
+      if (isReflecting) userHasScrolledUp.current = true;
+    };
+    el.addEventListener('touchstart', onTouch, { passive: true });
+    el.addEventListener('mousedown', onTouch);
+    return () => {
+      el.removeEventListener('touchstart', onTouch);
+      el.removeEventListener('mousedown', onTouch);
+    };
+  }, [isReflecting]);
 
   useEffect(() => {
     document.title = screen === 'mirror' ? 'The Blunnit Mirror' : 'The Blunnit Mirror — Pierce The Illusion';
