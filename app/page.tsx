@@ -254,6 +254,7 @@ export default function Home() {
         titleRegenFiredRef.current = true;
         setConfrontation(data.conversation?.confrontation_level || 'clear');
         setScreen('mirror');
+        setTimeout(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'instant' }); }, 150);
       }
     } catch {}
   };
