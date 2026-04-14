@@ -33,6 +33,15 @@ html, body {
   background: rgba(232, 228, 223, 0.15);
 }
 
+textarea, input {
+  -webkit-appearance: none;
+}
+
+textarea:focus, input:focus {
+  outline: none;
+  box-shadow: none;
+}
+
 textarea::placeholder {
   color: var(--text-muted);
 }
