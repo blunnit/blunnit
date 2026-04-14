@@ -102,8 +102,8 @@ export default function Home() {
     try { return localStorage.getItem('blunnit_sidebar_open') !== 'false'; } catch { return true; }
   });
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const isUserScrolledUp = useRef(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const userHasScrolledUp = useRef(false);
   const pendingChoiceRef = useRef<string | null>(null);
   const sitPrefRef = useRef(sitPref);
   const userMsgCountRef = useRef(0);
@@ -317,17 +317,8 @@ export default function Home() {
 
   useEffect(() => { if (!authLoading && user) { checkLimits(); loadConversations(); loadThemes(); loadPreferences(); } }, [authLoading, user, checkLimits, loadConversations, loadThemes, loadPreferences]);
   useEffect(() => {
-    const handleScroll = () => {
-      const nearBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - 100;
-      isUserScrolledUp.current = !nearBottom;
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  useEffect(() => {
-    if (!isUserScrolledUp.current) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (!userHasScrolledUp.current && scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
     }
   }, [messages, streamedText]);
 
@@ -411,7 +402,7 @@ export default function Home() {
     setError(null); setIsReflecting(true); setStreamedText('');
     const userMessage: Message = { role: 'user', content: textToUse };
     const updatedMessages = [...messages, userMessage];
-    isUserScrolledUp.current = false;
+    userHasScrolledUp.current = false;
     setMessages(updatedMessages);
     const reflectionLevel = confrontation;
     setJournalText(''); setScreen('mirror');
@@ -876,12 +867,23 @@ export default function Home() {
 
         {/* MIRROR */}
         {screen === 'mirror' && (
-          <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', paddingTop: isDesktop ? 28 : 72, paddingBottom: 140, animation: 'fadeIn 0.6s ease' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', paddingTop: isDesktop ? 28 : 72, animation: 'fadeIn 0.6s ease' }}>
 
             {/* Header */}
             <div style={{ marginBottom: 32, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
               <button onClick={goHome} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: 13, fontFamily: F, letterSpacing: 3, textTransform: 'uppercase', padding: 0, transition: 'color 0.2s ease' }} onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; }}>← Home</button>
             </div>
+
+            {/* Scrollable messages area */}
+            <div
+              ref={scrollContainerRef}
+              onScroll={() => {
+                const el = scrollContainerRef.current;
+                if (!el) return;
+                userHasScrolledUp.current = el.scrollHeight - el.scrollTop - el.clientHeight >= 100;
+              }}
+              style={{ overflowY: 'auto', height: isDesktop ? 'calc(100vh - 120px)' : 'calc(100vh - 160px)', paddingBottom: 160 }}
+            >
 
             {/* Remaining in mirror */}
             {tier !== 'paid' && remaining > 0 && remaining <= 3 && (
@@ -985,7 +987,7 @@ export default function Home() {
             <p style={{ fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-muted)', textAlign: 'center', margin: '40px 0 20px 0', fontFamily: F, opacity: 0.4 }}>
               Powered by BLUNNIT
             </p>
-            <div ref={messagesEndRef} />
+            </div>
 
             {/* Bottom input */}
             <div style={{ position: 'fixed', bottom: isDesktop ? 0 : keyboardOffset, left: isDesktop && sidebarOpen ? 280 : 0, right: 0, zIndex: 10, background: 'linear-gradient(transparent, var(--bg) 20%)', padding: `40px ${isDesktop ? 40 : 28}px`, paddingBottom: isDesktop ? 28 : 'max(28px, env(safe-area-inset-bottom))' as any }}>
