@@ -102,8 +102,7 @@ export default function Home() {
     try { return localStorage.getItem('blunnit_sidebar_open') !== 'false'; } catch { return true; }
   });
 
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const userHasScrolledUp = useRef(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const pendingChoiceRef = useRef<string | null>(null);
   const sitPrefRef = useRef(sitPref);
   const userMsgCountRef = useRef(0);
@@ -317,36 +316,6 @@ export default function Home() {
 
   useEffect(() => { if (!authLoading && user) { checkLimits(); loadConversations(); loadThemes(); loadPreferences(); } }, [authLoading, user, checkLimits, loadConversations, loadThemes, loadPreferences]);
   useEffect(() => {
-    if (!userHasScrolledUp.current && scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
-    }
-  }, [messages.length]);
-
-  useEffect(() => {
-    if (!userHasScrolledUp.current && scrollContainerRef.current) {
-      requestAnimationFrame(() => {
-        if (!userHasScrolledUp.current && scrollContainerRef.current) {
-          scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
-        }
-      });
-    }
-  }, [streamedText]);
-
-  useEffect(() => {
-    const el = scrollContainerRef.current;
-    if (!el) return;
-    const onTouch = () => {
-      if (isReflecting) userHasScrolledUp.current = true;
-    };
-    el.addEventListener('touchstart', onTouch, { passive: true });
-    el.addEventListener('mousedown', onTouch);
-    return () => {
-      el.removeEventListener('touchstart', onTouch);
-      el.removeEventListener('mousedown', onTouch);
-    };
-  }, [isReflecting]);
-
-  useEffect(() => {
     document.title = screen === 'mirror' ? 'The Blunnit Mirror' : 'The Blunnit Mirror — Pierce The Illusion';
   }, [screen]);
 
@@ -426,10 +395,10 @@ export default function Home() {
     setError(null); setIsReflecting(true); setStreamedText('');
     const userMessage: Message = { role: 'user', content: textToUse };
     const updatedMessages = [...messages, userMessage];
-    userHasScrolledUp.current = false;
     setMessages(updatedMessages);
     const reflectionLevel = confrontation;
     setJournalText(''); setScreen('mirror');
+    setTimeout(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'instant' }); }, 100);
     const convId = await getOrCreateConversation(textToUse);
     if (convId) await saveMessage(convId, 'user', userMessage.content);
     userMsgCountRef.current += 1;
@@ -898,16 +867,8 @@ export default function Home() {
               <button onClick={goHome} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: 13, fontFamily: F, letterSpacing: 3, textTransform: 'uppercase', padding: 0, transition: 'color 0.2s ease' }} onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; }}>← Home</button>
             </div>
 
-            {/* Scrollable messages area */}
-            <div
-              ref={scrollContainerRef}
-              onScroll={() => {
-                const el = scrollContainerRef.current;
-                if (!el) return;
-                userHasScrolledUp.current = el.scrollHeight - el.scrollTop - el.clientHeight >= 100;
-              }}
-              style={{ overflowY: 'auto', height: isDesktop ? 'calc(100vh - 120px)' : 'calc(100vh - 160px)', paddingBottom: 160 }}
-            >
+            {/* Messages area */}
+            <div style={{ overflowY: 'auto', height: isDesktop ? 'calc(100vh - 120px)' : 'calc(100vh - 160px)', paddingBottom: 160 }}>
 
             {/* Remaining in mirror */}
             {tier !== 'paid' && remaining > 0 && remaining <= 3 && (
@@ -1011,6 +972,7 @@ export default function Home() {
             <p style={{ fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--text-muted)', textAlign: 'center', margin: '40px 0 20px 0', fontFamily: F, opacity: 0.4 }}>
               Powered by BLUNNIT
             </p>
+            <div ref={messagesEndRef} />
             </div>
 
             {/* Bottom input */}
